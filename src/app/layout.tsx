@@ -15,9 +15,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <div className="flex-1 flex flex-col">{children}</div>
+        <div className="flex-1 flex flex-col min-h-0">{children}</div>
         {/* Required by the challenge README. Keep on every page. */}
-        <footer className="px-4 py-2 text-xs text-ink-3 text-center">© 2026 Avon Corps</footer>
+        <footer className="shrink-0 h-8 flex items-center justify-center px-4 text-xs text-ink-3 border-t border-line-1">
+          © 2026 Avon Corps
+        </footer>
       </body>
     </html>
   );
