@@ -14,6 +14,7 @@ import { dispatch } from "@/lib/export/notify";
 const NAV = [
   { href: "/", label: "Dashboard" },
   { href: "/timeline", label: "Timeline" },
+  { href: "/dispatch", label: "On-call" },
 ];
 
 export function TopBar() {
@@ -26,7 +27,7 @@ export function TopBar() {
 
   async function sendAll() {
     if (!analysis || !dataset) return;
-    setNote("Posting…");
+    setNote("Sending…");
     const res = await dispatch({ type: "handoff", folder: dataset.folder, now: analysis.now, text: handoffText(analysis, dataset), links: { dashboard: "/" } });
     setNote(res.message);
     setTimeout(() => setNote(null), 4000);
@@ -67,7 +68,7 @@ export function TopBar() {
             <button type="button" className="btn" onClick={() => downloadEventsJson(analysis)} title="Download events.json (SPEC shape)">
               Export
             </button>
-            <button type="button" className="btn btn-primary" onClick={sendAll} title="Post the alert summary to Discord">
+            <button type="button" className="btn btn-primary" onClick={sendAll} title="Text the shift handoff to the morning crew">
               Dispatch
             </button>
             {note && <span className="text-xs text-ink-3 whitespace-nowrap">{note}</span>}

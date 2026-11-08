@@ -2,10 +2,11 @@
 import type { Event } from "@/lib/data/types";
 import { composeEscalation, dueStep, ladder } from "./escalation";
 import type { Roster } from "./roster";
+import { isPlaceholder } from "./send";
 import { allAlerts, update, type OpenAlert, type Watcher } from "./store";
 
 export interface TickDeps {
-  getEvent(folder: string, eventId: string): Promise<{ event: Event; now: number } | null>;
+  getEvent(folder: string, eventId: string, asOf?: number): Promise<{ event: Event; now: number } | null>;
   roster(): Promise<Roster>;
   /** Open (or reuse) a direct conversation with a handle; returns its space id. */
   openSpace(handle: string): Promise<string>;
@@ -25,7 +26,7 @@ export interface TickAction {
 export async function tick(deps: TickDeps): Promise<TickAction[]> {
   const actions: TickAction[] = [];
   for (const a of allAlerts()) {
-    const fresh = await deps.getEvent(a.folder, a.eventId).catch(() => null);
+    const fresh = await deps.getEvent(a.folder, a.eventId, a.asOf).catch(() => null);
     if (!fresh) continue;
     const step = dueStep(a, fresh.event, deps.nowMs, deps.timeScale);
     if (!step) continue;
@@ -47,9 +48,10 @@ export async function tick(deps: TickDeps): Promise<TickAction[]> {
       }
     };
 
-    if (step.kind === "reminder") await deliver(a.spaceId, "tech");
+    const techThread = a.spaceId !== "field-app";
+    if (step.kind === "reminder" && techThread) await deliver(a.spaceId, "tech");
     if (step.kind === "supervisor") {
-      const sups = (await deps.roster()).supervisor;
+      const sups = (await deps.roster()).supervisor.filter((p) => !isPlaceholder(p.handle));
       for (const p of sups) {
         try {
           const spaceId = await deps.openSpace(p.handle);
@@ -61,10 +63,10 @@ export async function tick(deps: TickDeps): Promise<TickAction[]> {
       }
       if (!sups.length) failed.push("no supervisor in roster");
       // Tell the tech help is coming.
-      if (a.status === "escalated") await deps.send(a.spaceId, `Supervisor paged for ${a.eventId}.`, `esc-ack:${a.key}`).catch(() => undefined);
+      if (a.status === "escalated" && techThread) await deps.send(a.spaceId, `Supervisor paged for ${a.eventId}.`, `esc-ack:${a.key}`).catch(() => undefined);
     }
     if (step.kind === "all_hands") {
-      await deliver(a.spaceId, "tech");
+      if (techThread) await deliver(a.spaceId, "tech");
       for (const w of watchers) await deliver(w.spaceId, w.name || w.role);
     }
 

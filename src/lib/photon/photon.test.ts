@@ -60,6 +60,10 @@ describe("parseEvent", () => {
     const e = parseEvent(received(null, { type: "group", parts: [{ type: "text", text: "fixed" }, { type: "attachment" }] }));
     expect(e).toMatchObject({ kind: "inbound_text", text: "fixed" });
   });
+  it("keeps photo-only messages with their attachment ids", () => {
+    const e = parseEvent(received(null, { type: "group", parts: [{ type: "attachment", attachmentId: "pho_att_1" }] }));
+    expect(e).toMatchObject({ kind: "inbound_text", text: "", attachments: ["pho_att_1"] });
+  });
   it("maps typing indicators and unknown events to other", () => {
     expect(parseEvent(received(null, { type: "space.typing.update", typing: true })).kind).toBe("other");
     expect(parseEvent({ id: "e", type: "call.ended" })).toEqual({ kind: "other", eventId: "e", type: "call.ended" });

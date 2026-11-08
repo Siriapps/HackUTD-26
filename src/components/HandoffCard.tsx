@@ -5,7 +5,7 @@ import { useOps } from "@/store";
 import { handoffText } from "@/lib/export/handoff";
 import { dispatch } from "@/lib/export/notify";
 
-/** The 30-second shift handoff: deterministic text from the Analysis, copy + Discord post. */
+/** The 30-second shift handoff: deterministic text from the Analysis, copy + text to the morning crew. */
 export function HandoffCard() {
   const analysis = useOps((s) => s.analysis);
   const dataset = useOps((s) => s.dataset);
@@ -23,7 +23,7 @@ export function HandoffCard() {
     setTimeout(() => setStatus(null), 2500);
   }
   async function post() {
-    setStatus("Posting…");
+    setStatus("Sending…");
     const res = await dispatch({ type: "handoff", folder: dataset!.folder, now: analysis!.now, text, links: { dashboard: "/" } });
     setStatus(res.message);
   }
@@ -40,7 +40,7 @@ export function HandoffCard() {
           Copy text
         </button>
         <button type="button" className="btn" onClick={post}>
-          Post to Discord
+          Text morning crew
         </button>
         {status && <span className="text-ink-3 truncate">{status}</span>}
       </div>
