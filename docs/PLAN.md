@@ -26,7 +26,7 @@ Output: this workspace `C:\Users\siria\OneDrive\Documents\code\HackUTD-26` (remo
 | `pipeline_leak` | while pump running: `receive_flow_bpd / flow_bpd` falls 1.00 → 0.96 (first hours) → 0.90 (after ~1 day); pipeline `pressure_psi` drops ~30 psi; discharge unchanged | ratio 0.998–1.002 |
 | `pump_degradation` | while running: `flow_bpd / max_flow_bpd` drifts 1.00 → 0.97 → 0.85 over ~1 day; discharge psi sags ~10; receive ratio stays 1.0 | ratio ≈ 1.000 ± 0.002 |
 
-Noise is tiny (~0.1 %), so thresholds of ~1.5 % on either ratio, sustained for ≥ 3 samples, separate events cleanly. Tune onset to match answer-key onsets within ±15 min.
+Measured noise (W1): receive ratio σ≈0.008, flow ratio σ≈0.006, psi σ≈3. Single-sample thresholds false-positive; W1 uses windowed deficits (≈1.6 % over 6–12 running samples) with median+MAD baselines per asset. Tune onset to match answer-key onsets within ±15 min.
 
 **Reference plan costs to reproduce** (ops: $905/trip, 150 bbl, repair 6 h, oil $60, gas $3):
 - full_week at onset, sequential fleet ledger: EVENT_6 none (peaks 76.7 %); 9: 1 truck 1 trip $905; 11: $905; 12: $905 (1 of 2 trucks free); 13: shut in `S2_WELL_A1` at +189 min $3,384 (0 trucks free); 14: $905; 15: 1 truck 2 trips $1,810; 18: shut in `S4_WELL_B1` at +306 min $478; 19: $905; 20: $905; 21: shut in `S4_WELL_A2` at +51 min $2,414; 22: $905; 23: $905.

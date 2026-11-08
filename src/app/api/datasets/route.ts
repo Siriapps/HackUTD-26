@@ -22,4 +22,4 @@ export async function GET() {
   out.sort((a, b) => (a.folder === "test" ? -1 : b.folder === "test" ? 1 : a.folder.localeCompare(b.folder)));
   return NextResponse.json(out);
 }
-// GET handlers are dynamic by default; `export const dynamic` is rejected under cacheComponents.
+

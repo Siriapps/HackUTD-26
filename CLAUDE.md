@@ -35,7 +35,7 @@ Series are keyed `"${asset_id}|${metric}"` → `Float64Array` aligned to `datase
 - `pump_failure`: pump `status == 2`, flow 0, discharge collapses to disposal psi, tank climbs.
 - `pipeline_leak`: while running, `receive_flow_bpd / flow_bpd` drifts 1.00 → 0.96 → 0.90 over ~1 day; pipeline psi −30.
 - `pump_degradation`: while running, `flow_bpd / max_flow_bpd` drifts 1.00 → 0.97 → 0.85 over ~1 day; discharge −10; receive ratio stays 1.0.
-- Healthy ratios sit at 1.000 ± 0.002, so derive baselines from the loaded folder itself, never hardcode.
+- Healthy ratios sit at 1.000 with σ≈0.006–0.008 (psi σ≈3): use windowed deficits and median+MAD baselines derived from the loaded folder, never hardcode.
 - Trucks: all called at plan start, first arrival `response_min`, then every `cycle_min`; each trip removes
   `truck_capacity_bbl` for `cost_per_trip`; every trip must land before repair ends and before the tank trips.
 - Shut-in cost = (oil_bpd×oil_per_bbl + gas_mcfd×gas_per_mcf)/24 × hours shut in; latest feasible start is cheapest.
