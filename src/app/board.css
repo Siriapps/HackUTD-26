@@ -637,3 +637,14 @@
   background: var(--shutdown);
   border-color: var(--shutdown);
 }
+
+/* ─── maximised stage ──────────────────────────────────────────────────── */
+.stage--big {
+  position: fixed;
+  inset: 8px;
+  z-index: 55;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.5);
+}
+.stage--big .band-dark {
+  min-height: 55vh;
+}

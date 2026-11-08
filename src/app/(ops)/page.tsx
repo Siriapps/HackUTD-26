@@ -29,6 +29,7 @@ export default function DashboardPage() {
   const analysis = useOps((s) => s.analysis);
   const [picked, setSelected] = useState<string | null>(null);
   const [view, setView] = useState<"twin" | "map">("twin");
+  const [big, setBig] = useState(false);
 
   // Selection: what the operator picked if it is still in progress, else the alert nearest to shutdown.
   const selected = picked && analysis?.alerts.some((e) => e.id === picked) ? picked : (analysis?.alerts[0]?.id ?? null);
@@ -106,7 +107,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="panel board__stage flex flex-col min-h-0 overflow-hidden">
+      <section className={`panel board__stage flex flex-col min-h-0 overflow-hidden ${big ? "stage--big" : ""}`}>
         <header className="panel-head items-center">
           {event ? (
             <div className="min-w-0 flex items-baseline gap-3">
@@ -136,8 +137,11 @@ export default function DashboardPage() {
                 Map
               </button>
             </div>
+            <button type="button" className="btn ml-1" onClick={() => setBig((b) => !b)} aria-pressed={big} title={big ? "Back to the board" : "Maximise the twin"}>
+              {big ? "Close" : "Maximise"}
+            </button>
             {event && (
-              <Link href={`/alert/${event.id}${q}`} className="btn btn-primary ml-2">
+              <Link href={`/alert/${event.id}${q}`} className="btn btn-primary ml-1">
                 Open alert
               </Link>
             )}
