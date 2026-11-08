@@ -29,7 +29,7 @@ export async function sendAlert(input: SendAlertInput): Promise<SendResult> {
   const found = await serverEvent(folder, input.eventId, input.asOf).catch(() => null);
   if (!found) return { ok: false, status: 404, error: `${input.eventId} not found in ${folder}` };
   const { event, now, fleet } = found;
-  const text = composeAlert(event, { now, folder, baseUrl: input.baseUrl, fleet });
+  const text = composeAlert(event, { now, folder, baseUrl: input.baseUrl, fleet, voiceNumber: process.env.PHOTON_VOICE_NUMBER?.trim() || undefined });
 
   const roster = await loadRoster();
   // Placeholder numbers from the example roster are never texted.
