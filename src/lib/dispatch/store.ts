@@ -67,6 +67,8 @@ const alerts: Map<string, OpenAlert> = (g.__dispatch ??= new Map());
 
 export const alertKey = (folder: string, eventId: string) => `${folder}|${eventId}`;
 
+import { annotateIncident, logMessage } from "../db/incidents";
+
 export function upsertAlert(
   a: Omit<OpenAlert, "key" | "log" | "status" | "escalation" | "watchers"> & Partial<Pick<OpenAlert, "status">>,
 ): OpenAlert {
@@ -96,6 +98,8 @@ export function update(key: string, patch: Partial<OpenAlert>, entry?: LogEntry)
   if (!a) return undefined;
   const next = { ...a, ...patch, log: entry ? [...a.log, entry] : a.log };
   alerts.set(key, next);
+  if (entry) logMessage({ folder: a.folder, eventId: a.eventId, channel: "photon", direction: entry.dir, recipient: a.handle, body: entry.text, payload: { intent: (entry as { intent?: string }).intent, by: (entry as { by?: string }).by } });
+  if (patch.status) annotateIncident(a.folder, a.eventId, { status: patch.status });
   return next;
 }
 

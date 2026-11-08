@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse, connection } from "next/server";
+import { annotateIncident } from "@/lib/db/incidents";
 
 /**
  * Session outcomes → training data. POST appends one record to data/outcomes/session.json, the
@@ -34,5 +35,17 @@ export async function POST(req: Request) {
   const next = [...rows.filter((r) => `${r.folder}|${r.event_id}` !== key), rec];
   await mkdir(path.dirname(FILE), { recursive: true });
   await writeFile(FILE, JSON.stringify(next, null, 2) + "\n");
+  annotateIncident(String(b.folder), String(b.event_id), {
+    verdict: typeof b.verdict === "string" ? b.verdict : undefined,
+    resolution: typeof b.resolution === "string" ? b.resolution : undefined,
+    visual_report: b.report,
+    status: typeof b.end_unix === "number" ? "resolved" : undefined,
+    end_unix: typeof b.end_unix === "number" ? b.end_unix : undefined,
+    category: String(b.category),
+    system: typeof b.system === "string" ? b.system : undefined,
+    facility: typeof b.facility === "string" ? b.facility : undefined,
+    asset: typeof b.asset === "string" ? b.asset : undefined,
+    onset_unix: typeof b.onset_unix === "number" ? b.onset_unix : undefined,
+  });
   return NextResponse.json({ ok: true, count: next.length, file: "data/outcomes/session.json" });
 }

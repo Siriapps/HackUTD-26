@@ -119,7 +119,7 @@ export function AlertView({ id }: { id: string }) {
       "",
       `Console: ${location.origin}/alert/${event!.id}${q} · Field: ${location.origin}/field/${event!.id}${q}`,
     ].join("\n");
-    const r = await fetch("/api/ticket", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, body: bodyMd, labels: ["incident", event!.category] }) });
+    const r = await fetch("/api/ticket", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, body: bodyMd, labels: ["incident", event!.category], folder: dataset!.folder, eventId: id }) });
     const j = (await r.json().catch(() => ({}))) as { ok?: boolean; url?: string; reason?: string };
     if (j.ok && j.url) {
       setTicket(j.url);

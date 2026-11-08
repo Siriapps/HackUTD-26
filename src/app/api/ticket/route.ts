@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { NextResponse } from "next/server";
+import { logTicket } from "@/lib/db/incidents";
 
 const run = promisify(execFile);
 
@@ -10,7 +11,7 @@ const run = promisify(execFile);
  * the app. Without `gh`, answers 503 with the ticket text so the UI can still show it.
  */
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { title?: string; body?: string; labels?: string[] };
+  const body = (await req.json().catch(() => ({}))) as { title?: string; body?: string; labels?: string[]; folder?: string; eventId?: string };
   if (!body.title) return NextResponse.json({ ok: false, reason: "title required" }, { status: 400 });
   const repo = process.env.TICKET_REPO || "Siriapps/HackUTD-26";
   const args = ["issue", "create", "--repo", repo, "--title", body.title.slice(0, 200), "--body", body.body ?? ""];
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
   try {
     const { stdout } = await run("gh", args, { timeout: 20_000, windowsHide: true });
     const url = stdout.trim().split("\n").pop() ?? "";
+    if (body.folder && body.eventId) logTicket(body.folder, body.eventId, "github", url.split("/").pop() ?? url, url);
     return NextResponse.json({ ok: true, url, repo });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
