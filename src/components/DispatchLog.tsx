@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useOps } from "@/store";
+import { INFO, InfoTip } from "./InfoTip";
 
 interface LogEntry {
   at: number;
@@ -54,7 +55,9 @@ export function DispatchLog() {
   return (
     <section className="panel flex flex-col min-h-0">
       <header className="panel-head">
-        <h2 className="panel-title">Dispatch log</h2>
+        <h2 className="panel-title flex items-center gap-1.5">
+          Dispatch log <InfoTip title={INFO.dispatch.title}>{INFO.dispatch.body}</InfoTip>
+        </h2>
         <span className="panel-sub">
           {alerts === null ? "connecting" : `${rows.length} thread${rows.length === 1 ? "" : "s"}`} · iMessage via Photon
         </span>

@@ -8,6 +8,7 @@ import { CATEGORY } from "@/components/Category";
 import { CountdownRing } from "@/components/Countdown";
 import { PlanCompare } from "@/components/PlanCompare";
 import { PlanOfAction } from "@/components/PlanOfAction";
+import { INFO, InfoTip } from "@/components/InfoTip";
 import { Twin3DSlot } from "@/components/Twin3DSlot";
 import { fmtClock, fmtHours, fmtMoney, fmtPct } from "@/components/format";
 import { describeActions } from "@/lib/export/handoff";
@@ -169,7 +170,9 @@ export function AlertView({ id }: { id: string }) {
 
       <section className="panel alert__plan">
         <header className="panel-head">
-          <h2 className="panel-title">Plan of action</h2>
+          <h2 className="panel-title flex items-center gap-1.5">
+            Plan of action <InfoTip title={INFO.plan.title} align="left">{INFO.plan.body}</InfoTip>
+          </h2>
           {event.plan && (
             <span className="panel-sub">
               <span className="num text-ink-1 font-semibold" style={{ color: event.plan.recommended.feasible ? "var(--ok)" : "var(--shutdown)" }}>
@@ -218,7 +221,9 @@ export function AlertView({ id }: { id: string }) {
       {event.plan && (
         <section className="panel alert__options">
           <header className="panel-head">
-            <h2 className="panel-title">Every option, priced</h2>
+            <h2 className="panel-title flex items-center gap-1.5">
+              Every option, priced <InfoTip title={INFO.plan.title} align="left">{INFO.plan.body}</InfoTip>
+            </h2>
             <span className="panel-sub">minute-by-minute tank simulation</span>
           </header>
           <div className="px-4 py-3">

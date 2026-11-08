@@ -3,6 +3,7 @@
 import type { Analysis, Dataset, Event } from "@/lib/data/types";
 import { fmtClock, fmtHours } from "./format";
 import { TruckGlyph } from "./TruckGlyph";
+import { INFO, InfoTip } from "./InfoTip";
 
 /**
  * The shutdown race: every filling tank as a bar from "now" toward its shutdown line, nearest
@@ -36,7 +37,9 @@ export function ShutdownRace({
   return (
     <section className="race" aria-label="Shutdown race: filling tanks ordered by time to shutdown">
       <header className="race__head">
-        <h2 className="panel-title">Shutdown race</h2>
+        <h2 className="panel-title flex items-center gap-1.5">
+          Shutdown race <InfoTip title={INFO.race.title} align="left">{INFO.race.body}</InfoTip>
+        </h2>
         <span className="panel-sub">
           <span className="num">{failures.length}</span> tank{failures.length === 1 ? "" : "s"} filling · bars show the recommended plan · <span style={{ color: "var(--shutdown)" }}>■</span> trips
           {" · "}

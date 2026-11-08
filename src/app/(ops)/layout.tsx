@@ -6,6 +6,7 @@ import { LoadingPanel } from "@/components/LoadingPanel";
 import { TopBar } from "@/components/TopBar";
 import { SideRail } from "@/components/SideRail";
 import { FiringToast } from "@/components/FiringToast";
+import { AskFlare } from "@/components/AskFlare";
 import { useMounted } from "@/components/useMounted";
 
 /** Shell for the operator screens: top bar, dataset bootstrap, loading state. Footer lives in the root layout. */
@@ -31,6 +32,7 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       {mounted && <FiringToast />}
+      {mounted && <AskFlare />}
     </div>
   );
 }

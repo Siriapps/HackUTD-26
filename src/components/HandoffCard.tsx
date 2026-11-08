@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useOps } from "@/store";
+import { INFO, InfoTip } from "./InfoTip";
 import { handoffText, planLine } from "@/lib/export/handoff";
 import { dispatch } from "@/lib/export/notify";
 import { fmtClock, fmtHours, fmtMoney, fmtPct } from "./format";
@@ -48,7 +49,9 @@ export function HandoffCard() {
   return (
     <section className="panel flex flex-col min-h-0">
       <header className="panel-head">
-        <h2 className="panel-title">Shift handoff</h2>
+        <h2 className="panel-title flex items-center gap-1.5">
+          Shift handoff <InfoTip title={INFO.handoff.title}>{INFO.handoff.body}</InfoTip>
+        </h2>
         <span className="panel-sub num">{fmtClock(now)} · 30 s read</span>
       </header>
       <div className="px-4 pt-3 pb-2 text-sm overflow-auto min-h-0 space-y-3">

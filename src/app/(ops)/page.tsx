@@ -13,6 +13,7 @@ import { MapPanel } from "@/components/MapPanel";
 import { PlanCompare } from "@/components/PlanCompare";
 import { ShutdownRace } from "@/components/ShutdownRace";
 import { ForecastCard } from "@/components/ForecastCard";
+import { INFO, InfoTip } from "@/components/InfoTip";
 import { Twin3DSlot } from "@/components/Twin3DSlot";
 import { fmtClock, fmtHours, fmtMoney } from "@/components/format";
 import { describeActions } from "@/lib/export/handoff";
@@ -42,7 +43,9 @@ export default function DashboardPage() {
 
       <section className="panel board__queue flex flex-col min-h-0">
         <header className="panel-head">
-          <h2 className="panel-title">Queue</h2>
+          <h2 className="panel-title flex items-center gap-1.5">
+            Queue <InfoTip title={INFO.queue.title} align="left">{INFO.queue.body}</InfoTip>
+          </h2>
           <span className="panel-sub num">
             {analysis.alerts.length} in progress{failures ? ` · ${failures} filling` : ""}
           </span>
@@ -56,7 +59,9 @@ export default function DashboardPage() {
         <header className="panel-head items-center">
           {event ? (
             <div className="min-w-0 flex items-baseline gap-3">
-              <h2 className="panel-title num truncate">{event.facility}</h2>
+              <h2 className="panel-title num truncate flex items-center gap-1.5">
+                {event.facility} <InfoTip title={INFO.stage.title} align="left">{INFO.stage.body}</InfoTip>
+              </h2>
               <span className="chip" style={{ background: CATEGORY[event.category].wash, color: CATEGORY[event.category].ink }}>
                 {CATEGORY[event.category].label}
               </span>
@@ -67,7 +72,9 @@ export default function DashboardPage() {
               )}
             </div>
           ) : (
-            <h2 className="panel-title">Network</h2>
+            <h2 className="panel-title flex items-center gap-1.5">
+              Network <InfoTip title={INFO.stage.title} align="left">{INFO.stage.body}</InfoTip>
+            </h2>
           )}
           <div className="flex items-center gap-1 shrink-0">
             <div className="seg" role="tablist" aria-label="Stage view">
