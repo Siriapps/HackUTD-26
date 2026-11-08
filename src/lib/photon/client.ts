@@ -32,6 +32,9 @@ export function photonConfig(env: Record<string, string | undefined> = process.e
 
 type FetchLike = typeof fetch;
 
+/** Photon idempotency keys: 1-255 printable ASCII, no spaces. */
+export const safeKey = (k: string) => k.replace(/[^\x21-\x7e]/g, "_").slice(0, 255) || "_";
+
 export class PhotonClient {
   constructor(
     private readonly cfg: PhotonConfig,
@@ -45,7 +48,7 @@ export class PhotonClient {
   private async req<T>(method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
     const headers: Record<string, string> = { Authorization: `Bearer ${this.cfg.apiKey}` };
     if (body !== undefined) headers["Content-Type"] = "application/json";
-    if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+    if (idempotencyKey) headers["Idempotency-Key"] = safeKey(idempotencyKey);
     const res = await this.fetchImpl(`${BASE}/projects/${this.cfg.projectId}${path}`, {
       method,
       headers,
@@ -55,7 +58,7 @@ export class PhotonClient {
     const json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
     if (!res.ok) {
       throw new PhotonError(
-        `Photon ${method} ${path} → ${res.status} ${String(json.code ?? json.title ?? "")}`.trim(),
+        `Photon ${method} ${path} → ${res.status} ${String(json.code ?? json.title ?? "")}${json.detail ? `: ${String(json.detail)}` : ""}`.trim(),
         res.status,
         typeof json.code === "string" ? json.code : undefined,
       );

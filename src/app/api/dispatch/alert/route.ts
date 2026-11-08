@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { composeAlert } from "@/lib/dispatch/alert";
 import { loadRoster, onCallFor } from "@/lib/dispatch/roster";
@@ -34,7 +35,8 @@ export async function POST(request: Request) {
   }
 
   const planSig = event.plan ? `${event.plan.recommended.label}|${Math.round(event.plan.recommended.cost)}` : "inspect";
-  const key = `alert:${folder}:${event.id}:${planSig}`.slice(0, 255);
+  // Photon keys must be printable ASCII without spaces: hash the plan so a re-optimised plan gets a new key.
+  const key = `alert:${folder}:${event.id}:${createHash("sha256").update(planSig).digest("hex").slice(0, 16)}`.slice(0, 255);
   try {
     const { space, sender } = await client.directSpace("imessage", to);
     const msg = await client.sendText(space.id, text, key, sender);
