@@ -1,10 +1,12 @@
 import { GoogleGenAI, Modality, type FunctionDeclaration, type LiveConnectConfig } from "@google/genai";
 import { NextResponse } from "next/server";
 
-// Defaults confirmed against aistudio.google.com/docs/live-api (+ /models) on 2026-11-07.
+// Live model: aistudio.google.com/docs/live-api + deprecations (2026-11-07) → gemini-3.8-live.
+// Vision fallback: gemini-3.6-flash. Ephemeral tokens: SDK types mark authTokens.create as
+// v1alpha; public Live docs also mention v1beta — override via GEMINI_API_VERSION.
 export const LIVE_MODEL = process.env.GEMINI_LIVE_MODEL || "gemini-3.8-live";
 export const VISION_MODEL = process.env.GEMINI_VISION_MODEL || "gemini-3.6-flash";
-export const API_VERSION = process.env.GEMINI_API_VERSION || "v1beta";
+export const API_VERSION = process.env.GEMINI_API_VERSION || "v1alpha";
 
 /** Server-side client. Null when no key is configured so routes can degrade with a reason. */
 export function gemini(): GoogleGenAI | null {

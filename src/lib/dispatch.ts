@@ -1,4 +1,14 @@
-import type { NotifyBody } from "@/app/api/notify/payload";
+import type { Event } from "@/lib/data/types";
+
+export type NotifyKind = "alert" | "confirmation" | "observation" | "escalation" | "resolution";
+
+/** POST /api/notify body. The route itself is P3's; this client degrades if it is not up yet. */
+export interface NotifyBody {
+  event: Event;
+  folder?: string;
+  kind?: NotifyKind;
+  note?: string;
+}
 
 export interface DispatchResult {
   ok: boolean;
@@ -15,5 +25,5 @@ async function post(url: string, body: unknown): Promise<DispatchResult & Record
   }
 }
 
-/** Client helper for the Discord dispatch (shared by W2's button and the field page). */
+/** Client helper for Discord dispatch (W2 button and the field page). */
 export const notifyOps = (body: NotifyBody) => post("/api/notify", body);

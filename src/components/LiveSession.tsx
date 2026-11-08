@@ -5,8 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Transcript, { type Line } from "@/components/Transcript";
 import { notifyOps } from "@/lib/dispatch";
 import type { EventContext } from "@/lib/events";
-import { FIELD_TOOLS } from "@/lib/memory/briefing";
-import { addFieldNote, addVisualReport, fieldNotes, recordFeedback, similar } from "@/lib/memory/incidents";
+import { FIELD_TOOLS, addFieldNote, addVisualReport, fieldNotes, recordFeedback, similar } from "@/lib/memory";
 
 type Status = "idle" | "starting" | "live" | "ended";
 interface Availability {
@@ -438,26 +437,26 @@ export default function LiveSession({ ctx, briefing, onMemoryChange }: Props) {
       </section>
 
       <nav className="bar" aria-label="Call controls">
-        <div className="grid grid-cols-[1fr_auto] gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_5.5rem] gap-2">
           {live || status === "starting" ? (
             <button type="button" className="btn btn-ghost" onClick={() => end("Call ended.")} disabled={status === "starting"}>
               {status === "starting" ? "Connecting…" : "End call"}
             </button>
           ) : (
             <button type="button" className="btn btn-primary" onClick={start} disabled={!avail?.configured}>
-              {off ? "Live call unavailable" : status === "ended" ? "Start again" : "Start live call"}
+              {off ? "Live unavailable" : status === "ended" ? "Start again" : "Start live call"}
             </button>
           )}
-          <button type="button" className="btn btn-ghost px-5" onClick={snapshot} disabled={!avail?.configured || !!busy}>
-            {busy === "snapshot" ? "Asking…" : "Photo"}
+          <button type="button" className="btn btn-ghost" onClick={snapshot} disabled={!avail?.configured || !!busy}>
+            {busy === "snapshot" ? "…" : "Photo"}
           </button>
         </div>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <button type="button" className="btn btn-ghost btn-sm" onClick={buildReport} disabled={!avail?.configured || !!busy || !frameCount}>
-            {busy === "report" ? "Writing report…" : `Visual report${frameCount ? ` · ${frameCount} frames` : ""}`}
+            {busy === "report" ? "Writing…" : frameCount ? `Report · ${frameCount}` : "Visual report"}
           </button>
           <button type="button" className="btn btn-danger btn-sm" data-armed={armed} onClick={escalateTap}>
-            {armed ? "Tap again to escalate" : "Escalate to ops"}
+            {armed ? "Tap again" : "Escalate"}
           </button>
         </div>
       </nav>

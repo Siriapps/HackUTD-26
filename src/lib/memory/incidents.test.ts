@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { recordResolution, similar } from "./index";
 import { FIXTURES } from "./fixture";
-import { feedbackCounts, htlBand, levelBand, recordFeedback, recordResolution, similar } from "./incidents";
+import { feedbackCounts, htlBand, levelBand, recordFeedback } from "./incidents";
 
 // Node has no localStorage; the memory module only needs getItem/setItem.
 const store = new Map<string, string>();

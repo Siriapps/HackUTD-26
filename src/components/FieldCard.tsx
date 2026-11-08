@@ -5,8 +5,16 @@ import { useState, type ReactNode } from "react";
 import VisualReportCard from "@/components/VisualReportCard";
 import type { EventContext } from "@/lib/events";
 import { hoursText, money, pct, utc } from "@/lib/format";
-import { describeActions } from "@/lib/memory/briefing";
-import { CATEGORY_LABEL, RUNBOOKS, type Feedback, type FeedbackCounts, type FieldNote, type Incident, type VisualReport } from "@/lib/memory/incidents";
+import {
+  CATEGORY_LABEL,
+  RUNBOOKS,
+  describeActions,
+  type Feedback,
+  type FeedbackCounts,
+  type FieldNote,
+  type Incident,
+  type VisualReport,
+} from "@/lib/memory";
 
 export interface FieldCardProps {
   ctx: EventContext;
@@ -40,12 +48,12 @@ function TankBar({ level, warning, shutdown }: { level: number; warning: number;
         <span className="tank-tick" style={{ left: `${warning}%` }} />
         <span className="tank-tick" data-kind="shutdown" style={{ left: `${shutdown}%` }} />
       </div>
-      <div className="num mt-2.5 flex justify-between text-[14px] text-[var(--muted)]">
+      <div className="num mt-2.5 flex justify-between gap-2 text-[12px] leading-4 text-[var(--muted)]">
         <span>
           <span className="font-semibold text-[var(--text)]">{pct(level)}</span> now
         </span>
-        <span>{warning} % warning</span>
-        <span className="text-[var(--red)]">{shutdown} % shutdown</span>
+        <span className="text-center">{warning}% warn</span>
+        <span className="text-right text-[var(--red)]">{shutdown}% shut</span>
       </div>
     </div>
   );
@@ -70,13 +78,13 @@ export default function FieldCard({ ctx, incidents, notes, reports, counts, onFe
 
   return (
     <>
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--bg)_88%,transparent)] px-4 py-3 backdrop-blur-md">
-        <Link href={ctx.folder && ctx.folder !== "fixture" ? `/?folder=${encodeURIComponent(ctx.folder)}` : "/"} className="-ml-1 flex min-h-11 items-center gap-0.5 pr-2 text-[15px] text-[var(--muted)]">
+      <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--bg)_88%,transparent)] px-4 py-3 backdrop-blur-md">
+        <Link href={ctx.folder && ctx.folder !== "fixture" ? `/?folder=${encodeURIComponent(ctx.folder)}` : "/"} className="-ml-1 flex min-h-11 shrink-0 items-center gap-0.5 pr-1 text-[15px] text-[var(--muted)]">
           <Chevron className="rotate-180" />
           Console
         </Link>
-        <span className="num text-[14px] text-[var(--muted)]">{e.id}</span>
-        <span className="chip">{label}</span>
+        <span className="num min-w-0 flex-1 truncate text-center text-[14px] text-[var(--muted)]">{e.id}</span>
+        <span className="chip max-w-[42%] shrink-0 truncate">{label}</span>
       </header>
 
       <section className="px-4 pb-5 pt-5">
@@ -95,10 +103,11 @@ export default function FieldCard({ ctx, incidents, notes, reports, counts, onFe
             </p>
             <p className="mt-2 text-[15px] leading-6 text-[var(--muted)]">
               around <span className="num text-[var(--text)]">{utc(now + e.hours_to_limit.p50 * 3600)}</span>, likely between{" "}
-              <span className="num">{e.hours_to_limit.p10.toFixed(1)}</span> and <span className="num">{e.hours_to_limit.p90.toFixed(1)}</span> h
+              <span className="num">{e.hours_to_limit.p10.toFixed(1)}</span> and <span className="num">{e.hours_to_limit.p90.toFixed(1)}</span> h.
               {e.lost_revenue_per_hr != null ? (
                 <>
-                  . Shut in, this site loses <span className="num text-[var(--text)]">{money(e.lost_revenue_per_hr)}</span> an hour
+                  {" "}
+                  Shut-in loses <span className="num text-[var(--text)]">{money(e.lost_revenue_per_hr)}</span>/hr
                 </>
               ) : null}
             </p>

@@ -1,23 +1,23 @@
-/* Field view: phone in a gloved hand at 2 a.m. Dark navy, one category colour, mono numerics. */
+/* Field view: phone in a gloved hand at 2 a.m. Inherits W4 tokens; one category colour, mono numerics. */
 .field {
-  --bg: #070b14;
-  --surface: #0d1424;
-  --raised: #141d31;
-  --line: #22304d;
-  --text: #edf2ff;
-  --muted: #9aa8c7;
-  --dim: #6f7fa3;
-  --amber: #f5a524;
-  --cyan: #27d3ee;
-  --violet: #a78bfa;
-  --green: #34d399;
-  --red: #fb7185;
+  --bg: var(--surface-0, #070b14);
+  --surface: var(--surface-1, #0c1220);
+  --raised: var(--surface-2, #121a2b);
+  --line: var(--line-2, rgb(148 163 196 / 0.2));
+  --text: var(--text-1, #e8edf7);
+  --muted: var(--text-2, #a3afc7);
+  --dim: var(--text-3, #7c89a6);
+  --amber: var(--cat-failure, #ffab2e);
+  --cyan: var(--cat-leak, #22d3ee);
+  --violet: var(--cat-degradation, #a78bfa);
+  --green: var(--ok, #3ddc97);
+  --red: var(--shutdown, #ff5a5f);
   --cat: var(--amber);
   --bar-h: 8.25rem;
   background: var(--bg);
   color: var(--text);
   color-scheme: dark;
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   min-height: 100dvh;
 }
@@ -30,9 +30,12 @@
 /* The root layout owns <body>; until W2's dark tokens land, keep the footer strip readable on this route.
    ponytail: delete this rule once globals.css goes dark. */
 body:has(.field) {
-  background: #070b14;
-  color: #9aa8c7;
+  background: var(--surface-0, #070b14);
+  color: var(--text-3, #7c89a6);
   padding-bottom: calc(var(--bar-h, 8.25rem) + env(safe-area-inset-bottom));
+}
+body:has(.field) footer {
+  color: var(--text-3, #7c89a6);
 }
 .field ::selection {
   background: color-mix(in oklab, var(--cat) 35%, transparent);
@@ -43,7 +46,7 @@ body:has(.field) {
   border-radius: 0.5rem;
 }
 .field .num {
-  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 .field .btn {
@@ -111,11 +114,11 @@ body:has(.field) {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  line-height: 1.25rem;
+  line-height: 1.125rem;
   background: color-mix(in oklab, var(--cat) 18%, transparent);
   color: var(--cat);
 }
