@@ -15,6 +15,7 @@ const NAV = [
   { href: "/", label: "Dashboard" },
   { href: "/timeline", label: "Timeline" },
   { href: "/dispatch", label: "On-call" },
+  { href: "/landing", label: "Story" },
 ];
 
 export function TopBar() {
@@ -59,7 +60,7 @@ export function TopBar() {
         {phase === "ready" && dataset && analysis && (
           <>
             <span className="hidden min-[1200px]:inline num text-xs text-ink-3 whitespace-nowrap">data to {fmtTime(dataset.now)}</span>
-            <div className="max-[760px]:hidden contents">
+            <div className="max-[760px]:!hidden contents">
               <TimeScrubber />
             </div>
             {source === "fixture" && (
@@ -67,7 +68,7 @@ export function TopBar() {
                 fixture data
               </span>
             )}
-            <button type="button" className="btn max-[760px]:hidden" onClick={() => downloadEventsJson(analysis)} title="Download events.json (SPEC shape)">
+            <button type="button" className="btn max-[760px]:!hidden" onClick={() => downloadEventsJson(analysis)} title="Download events.json (SPEC shape)">
               Export
             </button>
             <button type="button" className="btn btn-primary" onClick={sendAll} title="Text the shift handoff to the morning crew">
