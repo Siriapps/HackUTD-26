@@ -221,13 +221,18 @@ final class FlareLiveController {
       model = grant.model
       eventLabel = "\(grant.eventId) · \(grant.eventLabel)\(grant.simulation ? " [SIM]" : "")"
       // Publish session.start so the web page seeds the runbook.
+      // `category` is the RUNBOOKS key string (e.g. "pipeline_leak"); the server also resolves it from the event id.
+      let eventDict = (try? JSONSerialization.jsonObject(with: grant.eventJSON)) as? [String: Any] ?? [:]
       await publishLive(grant: grant, type: "session.start", payload: [
         "simulation": grant.simulation,
-        "category": (try? JSONSerialization.jsonObject(with: grant.eventJSON)) as? [String: Any] ?? [:]
+        "category": eventDict["category"] as? String ?? ""
       ])
       try connect(grant)
     } catch {
-      await abort("Could not start the Gemini session: \(error.localizedDescription)")
+      // #region agent log — H-D/E/F: show which server URL the phone actually tried and the URLError code
+      let code = (error as? URLError).map { " [URLError \($0.errorCode)]" } ?? ""
+      await abort("Could not start the Gemini session: \(error.localizedDescription)\(code) — server: \(serverURL)")
+      // #endregion
     }
   }
 
@@ -441,7 +446,7 @@ final class FlareLiveController {
 
       // ── Live Incident Response tools ──────────────────────────────────────
       case "update_runbook_step":
-        let stepIndex = call.args["step_index"].flatMap { Int($0) } ?? -1
+        let stepIndex = call.args["step_index"].flatMap { Int($0) ?? Double($0).map { Int($0) } } ?? -1
         let status = call.args["status"] ?? "in_progress"
         let observation = call.args["observation"]
         let techConfirmed = call.args["technician_confirmed"] == "true"
@@ -452,30 +457,27 @@ final class FlareLiveController {
           "technicianConfirmed": techConfirmed
         ]
         if let obs = observation { payload["observation"] = obs }
-        let result = await publishLive(grant: grant, type: "runbook.update", payload: payload)
-        response = ["result": result ? "step updated" : "update sent; server validation pending"]
+        let result = await publishLiveResult(grant: grant, type: "runbook.update", payload: payload)
+        response = Self.toolResponse(result, success: "step \(stepIndex) is now \(status)")
 
       case "draft_incident_report":
         let summary = call.args["summary"] ?? ""
         sys("Drafting incident report…")
-        let observations = call.args["observations"].map { $0.components(separatedBy: "\n") } ?? []
-        let actions = call.args["actions"].map { $0.components(separatedBy: "\n") } ?? []
-        let unresolved = call.args["unresolved"].map { $0.components(separatedBy: "\n") } ?? []
-        await publishLive(grant: grant, type: "report.draft", payload: [
-          "summary": summary,
-          "observations": observations,
-          "actions": actions,
-          "unresolved": unresolved
-        ])
-        response = ["result": "incident report drafted; awaiting technician confirmation to submit"]
+        // Only send lists Gemini actually provided; the server fills absent ones from the logged notes and runbook.
+        var draft: [String: Any] = ["summary": summary]
+        for key in ["observations", "actions", "unresolved"] {
+          if let raw = call.args[key] { draft[key] = Self.list(raw) }
+        }
+        let result = await publishLiveResult(grant: grant, type: "report.draft", payload: draft)
+        response = Self.toolResponse(result, success: "incident report drafted; ask the technician to confirm before submitting")
 
       case "submit_incident_report":
         let techConfirmed = call.args["technician_confirmed"] == "true"
         sys("Submitting incident report…")
-        await publishLive(grant: grant, type: "report.submit", payload: [
+        let result = await publishLiveResult(grant: grant, type: "report.submit", payload: [
           "technician_confirmed": techConfirmed
         ])
-        response = ["result": techConfirmed ? "report submitted" : "technician confirmation required; not yet submitted"]
+        response = Self.toolResponse(result, success: "report submitted")
         scheduling = "INTERRUPT"
 
       default:
@@ -729,6 +731,40 @@ final class FlareLiveController {
   }
 
   // MARK: - Live Incident Response publishing
+
+  /// Gemini list args arrive as JSON text (`["a","b"]`) from `GeminiLiveClient.argString`; tolerate plain newline text too.
+  static func list(_ raw: String) -> [String] {
+    if let data = raw.data(using: .utf8), let arr = (try? JSONSerialization.jsonObject(with: data)) as? [Any] {
+      return arr.compactMap { ($0 as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+    }
+    return raw.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+  }
+
+  /// What Gemini is told about a tool call: the server's own message when it gave one.
+  static func toolResponse(_ r: (ok: Bool, accepted: Bool, message: String?), success: String) -> [String: Any] {
+    if !r.ok { return ["error": "could not reach the server; the screen was not updated. Say so and retry once."] }
+    if !r.accepted { return ["error": r.message ?? "the server rejected this change"] }
+    return ["result": r.message ?? success]
+  }
+
+  private func publishLiveResult(grant: FlareBackend.Grant, type: String, payload: [String: Any]) async -> (ok: Bool, accepted: Bool, message: String?) {
+    liveSeq += 1
+    let event: [String: Any] = [
+      "id": UUID().uuidString,
+      "seq": liveSeq,
+      "sessionId": grant.sessionId,
+      "folder": grant.folder,
+      "eventId": grant.eventId,
+      "at": Int64(Date().timeIntervalSince1970 * 1000),
+      "type": type,
+      "payload": payload
+    ]
+    let none: (ok: Bool, accepted: Bool, message: String?) = (false, false, nil)
+    let r = await backend?.publishWithResult(grant: grant, liveEvent: event) ?? none
+    if !r.ok { sys("[live] could not publish \(type) to the server (non-fatal)") }
+    else if !r.accepted { sys("[live] \(type) not accepted: \(r.message ?? "rejected")") }
+    return r
+  }
 
   /// Publish a LiveEvent to POST /api/live/events. Failures are logged locally only;
   /// they never interrupt the Gemini socket.

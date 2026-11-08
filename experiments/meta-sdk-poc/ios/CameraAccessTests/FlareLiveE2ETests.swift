@@ -15,7 +15,7 @@ final class FlareLiveE2ETests: XCTestCase {
       throw XCTSkip("set TEST_RUNNER_FLARE_E2E_SERVER and TEST_RUNNER_FLARE_E2E_IMAGE to run")
     }
     let backend = try XCTUnwrap(FlareBackend(server: server, deviceToken: env["FLARE_E2E_TOKEN"] ?? ""))
-    let grant = try await backend.startSession(eventId: env["FLARE_E2E_EVENT"] ?? "FIX-LEAK", folder: "")
+    let grant = try await backend.startSession(eventId: env["FLARE_E2E_EVENT"] ?? "FIX-LEAK", folder: "", simulation: false)
     XCTAssertEqual(grant.inputSampleRate, 16000)
 
     let image = try XCTUnwrap(UIImage(contentsOfFile: imagePath))

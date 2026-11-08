@@ -21,36 +21,40 @@ struct TipRow: View {
   var title: String?
   let text: String
 
+  @ScaledMetric(relativeTo: .headline) private var iconSize: CGFloat = 22
+
   var body: some View {
-    HStack(alignment: .top, spacing: 12) {
+    HStack(alignment: .top, spacing: FlareSpace.md) {
       Image(resource)
         .resizable()
         .renderingMode(.template)
-        .foregroundStyle(Color.black)
+        .foregroundStyle(FlareColor.accent)
         .aspectRatio(contentMode: .fit)
-        .frame(width: 24)
-        .padding(.leading, 4)
-        .padding(.top, 4)
+        .frame(width: iconSize, height: iconSize)
+        .frame(width: 40, height: 40)
+        .background(FlareColor.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .accessibilityHidden(true)
 
       if let title {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: FlareSpace.xxs) {
           Text(title)
-            .font(.system(size: 18, weight: .semibold))
-            .foregroundStyle(Color.black)
+            .font(.headline)
+            .foregroundStyle(FlareColor.text1)
           Text(text)
-            .font(.system(size: 15))
-            .foregroundStyle(Color.gray)
+            .font(.subheadline)
+            .foregroundStyle(FlareColor.text2)
             .fixedSize(horizontal: false, vertical: true)
         }
       } else {
         Text(text)
-          .font(.system(size: 15))
-          .foregroundStyle(Color.black)
+          .font(.subheadline)
+          .foregroundStyle(FlareColor.text1)
           .fixedSize(horizontal: false, vertical: true)
       }
 
       Spacer(minLength: 0)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityElement(children: .combine)
   }
 }

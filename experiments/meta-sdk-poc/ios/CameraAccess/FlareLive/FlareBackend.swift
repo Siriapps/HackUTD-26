@@ -9,6 +9,7 @@
  */
 
 import Foundation
+import os
 
 struct FlareBackend: Sendable {
   struct Incident: Sendable, Equatable {
@@ -121,13 +122,41 @@ struct FlareBackend: Sendable {
     }
   }
 
+  /// Like `publish`, but also returns the server's verdict on tool-driven events (`result` in the response),
+  /// so the phone can tell Gemini what really happened instead of assuming success.
+  func publishWithResult(grant: Grant, liveEvent: [String: Any]) async -> (ok: Bool, accepted: Bool, message: String?) {
+    do {
+      let json = try await post("api/live/events", body: liveEvent, allowErrorStatus: true)
+      let result = json["result"] as? [String: Any]
+      return (
+        json["ok"] as? Bool ?? false,
+        (json["accepted"] as? Bool ?? true) && (result?["ok"] as? Bool ?? true),
+        result?["message"] as? String
+      )
+    } catch {
+      return (false, false, nil)
+    }
+  }
+
   private func post(_ path: String, body: [String: Any], allowErrorStatus: Bool = false) async throws -> [String: Any] {
     var req = URLRequest(url: baseURL.appendingPathComponent(path), timeoutInterval: 20)
     req.httpMethod = "POST"
     req.setValue("application/json", forHTTPHeaderField: "content-type")
     if !deviceToken.isEmpty { req.setValue(deviceToken, forHTTPHeaderField: "x-field-token") }
     req.httpBody = try JSONSerialization.data(withJSONObject: body)
-    let (data, response) = try await URLSession.shared.data(for: req)
+    // #region agent log — H-I/J: log exact URL and network errors via os_log
+    let _dbgLog = Logger(subsystem: "com.avon.flare", category: "dbg")
+    _dbgLog.debug("pre-request url=\(req.url?.absoluteString ?? "nil", privacy: .public) base=\(self.baseURL.absoluteString, privacy: .public)")
+    // #endregion
+    let (data, response): (Data, URLResponse)
+    do {
+      (data, response) = try await URLSession.shared.data(for: req)
+    } catch let urlErr as URLError {
+      // #region agent log — H-I/J: log URLError code via os_log
+      _dbgLog.error("url-error code=\(urlErr.errorCode) desc=\(urlErr.localizedDescription, privacy: .public) failingURL=\(urlErr.failingURL?.absoluteString ?? "nil", privacy: .public)")
+      // #endregion
+      throw urlErr
+    }
     let status = (response as? HTTPURLResponse)?.statusCode ?? 0
     guard let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
       throw Failure(message: "\(path): HTTP \(status), not JSON. Is the server URL the Next.js app?")

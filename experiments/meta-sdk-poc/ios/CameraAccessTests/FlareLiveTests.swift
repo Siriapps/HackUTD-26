@@ -114,6 +114,19 @@ final class FlareLiveTests: XCTestCase {
     guard case .goAway("10s") = GeminiLiveClient.parse(Data(#"{"goAway":{"timeLeft":"10s"}}"#.utf8)).first else { return XCTFail("no goAway") }
   }
 
+  /// Regression: JSON `true` used to arrive as "1" (NSNumber description), so technician_confirmed was never true
+  /// and every `completed` / submit was refused. Arrays used to be stringified garbage.
+  @MainActor
+  func testToolArgsKeepBooleansNumbersAndLists() {
+    let msg = #"{"toolCall":{"functionCalls":[{"id":"c2","name":"update_runbook_step","args":{"step_index":2,"status":"completed","technician_confirmed":true,"observations":["a","b"]}}]}}"#
+    guard case .toolCalls(let calls) = GeminiLiveClient.parse(Data(msg.utf8)).first, let call = calls.first else { return XCTFail("no tool call") }
+    XCTAssertEqual(call.args["technician_confirmed"], "true")
+    XCTAssertEqual(call.args["step_index"], "2")
+    XCTAssertEqual(call.args["status"], "completed")
+    XCTAssertEqual(FlareLiveController.list(call.args["observations"] ?? ""), ["a", "b"])
+    XCTAssertEqual(FlareLiveController.list("one\ntwo"), ["one", "two"])
+  }
+
   // MARK: - Live Incident Response event envelope
 
   func testLiveEventEnvelopeHasRequiredFields() throws {

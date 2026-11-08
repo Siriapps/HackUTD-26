@@ -38,6 +38,7 @@
 		E6DA451E2E79A63100E3F688 /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DA45172E79A63100E3F688 /* CardView.swift */; };
 		E6DA451F2E79A63100E3F688 /* MockDeviceKitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DA451A2E79A63100E3F688 /* MockDeviceKitView.swift */; };
 		FACE0000000000000000FA02 /* TipRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FACE0000000000000000FA01 /* TipRow.swift */; };
+		FACE0000000000000000FA04 /* FlareTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FACE0000000000000000FA03 /* FlareTheme.swift */; };
 		FLR000000000000000001B0 /* MediaSourceContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = FLR000000000000000001A0 /* MediaSourceContract.swift */; };
 		FLR000000000000000002B0 /* PCM16Converter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FLR000000000000000002A0 /* PCM16Converter.swift */; };
 		FLR000000000000000003B0 /* FrameSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = FLR000000000000000003A0 /* FrameSampler.swift */; };
@@ -117,6 +118,7 @@
 		E6DA45182E79A63100E3F688 /* MockDeviceCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDeviceCardView.swift; sourceTree = "<group>"; };
 		E6DA451A2E79A63100E3F688 /* MockDeviceKitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDeviceKitView.swift; sourceTree = "<group>"; };
 		FACE0000000000000000FA01 /* TipRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipRow.swift; sourceTree = "<group>"; };
+		FACE0000000000000000FA03 /* FlareTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlareTheme.swift; sourceTree = "<group>"; };
 		FLR000000000000000001A0 /* MediaSourceContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSourceContract.swift; sourceTree = "<group>"; };
 		FLR000000000000000002A0 /* PCM16Converter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCM16Converter.swift; sourceTree = "<group>"; };
 		FLR000000000000000003A0 /* FrameSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSampler.swift; sourceTree = "<group>"; };
@@ -236,6 +238,7 @@
 				8FFD5FF32E8422580035E446 /* CustomButton.swift */,
 				FACE0000000000000000FA01 /* TipRow.swift */,
 				POC0000000000000000000B5 /* FeasibilityHud.swift */,
+				FACE0000000000000000FA03 /* FlareTheme.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -471,6 +474,7 @@
 				8FFD5FF52E8422580035E446 /* CircleButton.swift in Sources */,
 				8FFD5FF62E8422580035E446 /* CustomButton.swift in Sources */,
 				FACE0000000000000000FA02 /* TipRow.swift in Sources */,
+				FACE0000000000000000FA04 /* FlareTheme.swift in Sources */,
 				POC0000000000000000000B4 /* StreamFeasibility.swift in Sources */,
 				POC0000000000000000000B6 /* FeasibilityHud.swift in Sources */,
 				POC0000000000000000000B8 /* StreamDiagnostics.swift in Sources */,
