@@ -28,7 +28,8 @@ async function runTick(client: PhotonClient) {
     roster: loadRoster,
     openSpace: async (handle) => (await client.directSpace("imessage", handle)).space.id,
     send: async (spaceId, text, key) => void (await client.sendText(spaceId, text, key, sender)),
-    call: (handle) => import("@/lib/voice/call").then((m) => m.callHandle(handle)),
+    call: process.env.DISPATCH_AUTO_CALL === "1" ? (handle) => import("@/lib/voice/call").then((m) => m.callHandle(handle)) : undefined,
+    voiceNumber: process.env.PHOTON_VOICE_NUMBER?.trim() || undefined,
     nowMs: Date.now(),
     timeScale: timeScale(),
   });
