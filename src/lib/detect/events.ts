@@ -1,4 +1,5 @@
 import { seriesKey, type Dataset, type Event, type Facility, type System } from "../data/types";
+import { calibration, type DriftCalibration } from "../calibration";
 import { findDriftSegments, hingeOnset, stepOnset, type Segment } from "./drift";
 import { lastIndexLE, robustBaseline, type Baseline } from "./stats";
 
@@ -7,8 +8,10 @@ export { lastIndexLE };
 // Detector design parameters (statistical, not dataset values): rolling-window length in running
 // samples, z-score trigger on the window mean, a floor on the relative drop so noise-free data
 // cannot trigger on rounding, and consecutive windows required.
-const LEAK = { window: 6, z: 5, minDrop: 0.01, persist: 2 };
-const WEAR = { window: 12, z: 5, minDrop: 0.01, persist: 3 };
+// Tunables come from calibration.json (refit nightly by scripts/retrain); defaults when absent.
+const toDrift = (c: DriftCalibration) => ({ window: c.window, z: c.z, minDrop: c.ratio_threshold, persist: c.min_persist });
+const LEAK = toDrift(calibration.detect.leak);
+const WEAR = toDrift(calibration.detect.degradation);
 const H = 3600;
 
 export interface FacilityCtx {
@@ -195,7 +198,7 @@ function leaks(ds: Dataset, p: FacilitySamples, nowIdx: number, b: Baselines, dt
     if (b.flow) e.evidence.push(`Pump delivers ${pct(ctx.fl[last] / ctx.fac.pump.max_flow_bpd)} % of rated flow, so the shortfall is downstream`);
     const pumpingH = ((lastPos - run.indexOf(onsetIdx) + 1) * dt) / H;
     e.evidence.push(`Shortfall has persisted for ${pumpingH.toFixed(1)} h of pumping since ${fmtT(ds.ts[onsetIdx])}`);
-    e.confidence = confidence(seg);
+    e.confidence = confidence(seg) * calibration.confidence_weights[e.category];
     out.push(e);
     prevEnd = seg.end ?? nowIdx;
   }
@@ -250,7 +253,7 @@ function wear(ds: Dataset, p: FacilitySamples, nowIdx: number, b: Baselines, fai
       if (b.dp) e.evidence.push(`Discharge ${n0(ctx.dp[last])} psi is ${n0(b.dp.m - ctx.dp[last])} psi below its running baseline ${n0(b.dp.m)} psi`);
       e.evidence.push(`Flow declining ${pct(-fit.slopes[0], 2)} %/h since ${fmtT(onset)} (ramp fit over ${t.length} running samples)`);
       if (b.recv) e.evidence.push(`Receive flow is ${pct(ctx.rc[last] / ctx.fl[last])} % of pump flow, so the pipeline is intact`);
-      e.confidence = confidence(seg);
+      e.confidence = confidence(seg) * calibration.confidence_weights[e.category];
       out.push(e);
       prevEndTs = segEndTs;
     }

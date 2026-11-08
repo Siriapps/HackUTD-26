@@ -1,3 +1,4 @@
+import { calibration } from "@/lib/calibration";
 import { seriesKey, type Dataset, type DegradationForecast, type Event, type Facility } from "@/lib/data/types";
 
 /**
@@ -9,8 +10,8 @@ import { seriesKey, type Dataset, type DegradationForecast, type Event, type Fac
  * Everything else (noise, healthy baseline, failure band) is derived from the loaded folder.
  */
 
-/** Modelling prior, used only when the dataset holds no wear-related failure to learn the band from. */
-export const FALLBACK_FAIL_RATIO = 0.85;
+/** Prior for the pre-failure ratio band when the dataset holds no wear-related failure to learn from (nightly refit). */
+export const FALLBACK_FAIL_RATIO = calibration.forecast.fail_ratio_band;
 /** Running samples used to characterise a pump just before it failed (3 h at 5-min cadence). */
 const PRE_FAIL_SAMPLES = 36;
 /** A decline counts as real when it exceeds this many noise sigmas over the fitted window. */

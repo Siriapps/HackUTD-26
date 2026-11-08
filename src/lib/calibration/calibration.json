@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-11-08T00:57:33.750Z",
+  "generated_at": "2026-11-08T01:41:17.799Z",
   "detect": {
     "leak": {
-      "ratio_threshold": 0.01,
+      "ratio_threshold": 0.02,
       "min_persist": 2,
       "window": 6,
       "z": 5
     },
     "degradation": {
-      "ratio_threshold": 0.01,
+      "ratio_threshold": 0.02,
       "min_persist": 3,
       "window": 12,
       "z": 5
@@ -24,11 +24,11 @@
     "pump_degradation": 1
   },
   "forecast": {
-    "fail_ratio_band": 0.85,
+    "fail_ratio_band": 0.862,
     "min_points": 6
   },
   "provenance": {
-    "outcomes": 0,
+    "outcomes": 31,
     "external": 0,
     "folders": [
       "full_week",
@@ -42,9 +42,9 @@
       "dismissed": 0
     },
     "notes": [
-      "pipeline_leak: 0 healthy windows (max statistic 0, median σ NaN), 0 event windows over 0 events",
-      "pump_degradation: 0 healthy windows (max statistic 0, median σ NaN), 0 event windows over 0 events",
-      "forecast: no wear→failure pairs yet; band kept",
+      "pipeline_leak: 61839 healthy windows (max statistic 0.1161, median σ 0.0082), 3599 event windows over 5 events",
+      "pump_degradation: 60042 healthy windows (max statistic 0.0989, median σ 0.0057), 5903 event windows over 13 events",
+      "forecast: 3 wear→failure pairs failed at median ratio 0.862",
       "external: no CSV in data/external; skipped"
     ]
   },

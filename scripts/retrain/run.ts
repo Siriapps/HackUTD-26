@@ -151,20 +151,26 @@ function main() {
 
   // 1–2. Load, analyse, derive and persist outcomes per folder.
   const datasets = new Map<string, Dataset>();
+  const derived: Outcome[] = [];
   mkdirSync(OUTCOMES_DIR, { recursive: true });
   for (const folder of folders) {
     const ds = loadFolder(folder);
     datasets.set(folder, ds);
     const outcomes = deriveOutcomes(ds, analyse(ds));
+    derived.push(...outcomes);
     if (!dryRun) writeFileSync(path.join(OUTCOMES_DIR, `${folder}.json`), json(outcomes));
     console.log(`${folder}: ${ds.ts.length} samples, ${outcomes.length} resolved outcomes`);
   }
 
-  // 3. Merge every outcomes file; session exports may add verdicts for the same physical events.
-  const merged: Outcome[] = readdirSync(OUTCOMES_DIR)
-    .filter((f) => f.endsWith(".json"))
-    .sort()
-    .flatMap((f) => JSON.parse(readFileSync(path.join(OUTCOMES_DIR, f), "utf8")) as Outcome[]);
+  // 3. Merge what we just derived with every outcomes file on disk (session exports may add verdicts
+  //    for the same physical events; in a dry run the disk files may be stale or empty).
+  const merged: Outcome[] = [
+    ...derived,
+    ...readdirSync(OUTCOMES_DIR)
+      .filter((f) => f.endsWith(".json"))
+      .sort()
+      .flatMap((f) => JSON.parse(readFileSync(path.join(OUTCOMES_DIR, f), "utf8")) as Outcome[]),
+  ];
   const physical = new Map<string, Outcome>();
   for (const o of merged) {
     const prev = physical.get(physicalKey(o));
