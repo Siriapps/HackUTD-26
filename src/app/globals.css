@@ -1,2 +1,302 @@
 @import "tailwindcss";
 @import "./tokens.css";
+
+/* W2 layout chrome. Colour/type live in tokens.css (W4); do not redefine :root here. */
+
+.num-display {
+  font-family: var(--font-mono);
+  font-variant-numeric: proportional-nums;
+  letter-spacing: -0.03em;
+}
+
+/* ─── controls ─────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.btn:hover {
+  background: var(--surface-3);
+  border-color: var(--text-3);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--text-1);
+  border-color: var(--text-1);
+  color: var(--surface-0);
+}
+.btn-primary:hover {
+  background: #fff;
+  border-color: #fff;
+}
+.btn-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-2);
+  padding: 0 6px;
+}
+.btn-quiet:hover {
+  background: var(--surface-2);
+  border-color: transparent;
+  color: var(--text-1);
+}
+.select {
+  height: 28px;
+  padding: 0 26px 0 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--surface-2)
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23a3afc7' stroke-width='1.5'/></svg>")
+    no-repeat right 8px center;
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  appearance: none;
+  max-width: 100%;
+}
+.select:hover {
+  border-color: var(--text-3);
+}
+input[type="range"].scrub {
+  width: 100%;
+  height: 20px;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+input[type="range"].scrub::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--line-2);
+}
+input[type="range"].scrub::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface-0);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+input[type="range"].scrub::-moz-range-track {
+  height: 2px;
+  background: var(--line-2);
+}
+input[type="range"].scrub::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface-0);
+}
+
+/* ─── panels ───────────────────────────────────────────────────────────── */
+.panel {
+  background: var(--surface-1);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-md);
+  min-width: 0;
+}
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--line-1);
+}
+.panel-title {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+}
+.panel-sub {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+.row-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.row-link:hover {
+  background: var(--surface-2);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 7px 0 5px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 12px;
+  row-gap: 4px;
+  font-size: var(--fs-sm);
+}
+.kv dt {
+  color: var(--text-3);
+}
+.kv dd {
+  margin: 0;
+  color: var(--text-1);
+}
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+table.data th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-3);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line-1);
+  white-space: nowrap;
+}
+table.data td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line-1);
+  white-space: nowrap;
+}
+table.data td.n,
+table.data th.n {
+  text-align: right;
+}
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px var(--ok-soft);
+}
+.ring-pulse {
+  animation: ring-pulse 2.4s ease-out infinite;
+  transform-origin: center;
+}
+@keyframes ring-pulse {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.85);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+/* ─── dashboard grid ───────────────────────────────────────────────────── */
+.ops-dash {
+  display: grid;
+  height: 100%;
+  gap: 12px;
+  grid-template-columns: 400px minmax(0, 1fr) 320px;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "alerts map side";
+}
+.area-alerts {
+  grid-area: alerts;
+}
+.area-map {
+  grid-area: map;
+}
+.area-side {
+  grid-area: side;
+}
+@media (max-width: 1279px) {
+  .ops-dash {
+    grid-template-columns: 360px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "alerts map"
+      "alerts side";
+  }
+  .area-side {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .area-side > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+/* ─── third-party chrome ───────────────────────────────────────────────── */
+.leaflet-container {
+  background: #05080f;
+  font-family: var(--font-sans);
+}
+.leaflet-container .leaflet-control-attribution {
+  background: rgba(7, 11, 20, 0.75);
+  color: var(--text-3);
+  font-size: 10px;
+}
+.leaflet-container .leaflet-control-attribution a {
+  color: var(--text-2);
+}
+.leaflet-container .leaflet-bar a {
+  background: var(--surface-2);
+  color: var(--text-1);
+  border-color: var(--line-2);
+}
+.leaflet-container .leaflet-bar a:hover {
+  background: var(--surface-3);
+}
+.leaflet-tooltip.ops-tip {
+  background: var(--surface-1);
+  color: var(--text-1);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  font-size: var(--fs-sm);
+  padding: 6px 9px;
+}
+.leaflet-tooltip.ops-tip::before {
+  display: none;
+}
+.yard-marker {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--text-2);
+  border-radius: 2px;
+  background: var(--surface-0);
+  transform: rotate(45deg);
+}
+.recharts-tooltip-wrapper {
+  outline: none;
+}
+.chart-tip {
+  background: var(--surface-1);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  padding: 6px 9px;
+  font-size: var(--fs-sm);
+}
