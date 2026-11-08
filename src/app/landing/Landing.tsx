@@ -82,7 +82,7 @@ function useReducedMotion() {
 export function Landing() {
   const rm = useReducedMotion();
   return (
-    <main className="ld" data-reduced-motion={rm || undefined}>
+    <main className="ld band-dark" data-reduced-motion={rm || undefined}>
       <Hero rm={rm} />
       <Scrub rm={rm} />
       <Decision rm={rm} />

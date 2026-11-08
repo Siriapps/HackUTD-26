@@ -1,6 +1,7 @@
 "use client";
 
 import { useOps } from "@/store";
+import { INFO, InfoTip } from "./InfoTip";
 
 /** Trucks per system: committed by the joint plan at "now" vs free. */
 export function FleetCard() {
@@ -14,7 +15,9 @@ export function FleetCard() {
   return (
     <section className="panel">
       <header className="panel-head">
-        <h2 className="panel-title">Truck fleets</h2>
+        <h2 className="panel-title flex items-center gap-1.5">
+          Truck fleets <InfoTip title={INFO.fleet.title}>{INFO.fleet.body}</InfoTip>
+        </h2>
         <span className="panel-sub">{dataset.ops.emergency_trucking.truck_capacity_bbl} bbl a trip</span>
       </header>
       <ul className="px-4 py-2">
