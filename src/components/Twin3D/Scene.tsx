@@ -54,7 +54,7 @@ function readPalette(): Palette {
 // Renderer setup, hoisted so Canvas sees stable props across re-renders.
 const DPR: [number, number] = [1, 2];
 const GL = { antialias: true, powerPreference: "high-performance" as const, alpha: false, stencil: false };
-const CAMERA = { fov: 32, position: [3.6, 3.1, 7.4] as [number, number, number], near: 0.1, far: 80 };
+const CAMERA = { fov: 36, position: [3.0, 3.3, 8.6] as [number, number, number], near: 0.1, far: 80 };
 
 // Scene layout (scene units; one unit ≈ a few metres).
 const TANK = { x: -1.7, r: 0.85, h: 2.0 };
@@ -198,7 +198,7 @@ const World = memo(function World({
         autoRotateSpeed={ORBIT_SPEED}
         minPolarAngle={0.55}
         maxPolarAngle={1.3}
-        target={[1.3, 0.5, 0]}
+        target={[1.1, 0.6, 0]}
         onStart={onInteractStart}
         onEnd={onInteractEnd}
       />

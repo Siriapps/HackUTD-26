@@ -176,9 +176,9 @@ function AlertRow({
         </div>
 
         <div className="min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
             {rank != null && <span className="num text-sm text-ink-3 w-3">{rank}</span>}
-            <Link href={`/facility/${e.facility}${q}`} className="pointer-events-auto num font-semibold text-ink-1 truncate hover:underline">
+            <Link href={`/facility/${e.facility}${q}`} className="pointer-events-auto num font-semibold text-ink-1 shrink-0 hover:underline">
               {e.facility}
             </Link>
             <CategoryChip category={e.category} compact={compact} />

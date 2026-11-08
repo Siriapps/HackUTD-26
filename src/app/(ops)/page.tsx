@@ -108,17 +108,17 @@ export default function DashboardPage() {
       </section>
 
       <section className={`panel board__stage flex flex-col min-h-0 overflow-hidden ${big ? "stage--big" : ""}`}>
-        <header className="panel-head items-center">
+        <header className="panel-head items-center flex-wrap gap-y-1">
           {event ? (
-            <div className="min-w-0 flex items-baseline gap-3">
-              <h2 className="panel-title num truncate flex items-center gap-1.5">
+            <div className="min-w-0 flex items-baseline gap-3 flex-wrap">
+              <h2 className="panel-title num shrink-0 flex items-center gap-1.5">
                 {event.facility} <InfoTip title={INFO.stage.title} align="left">{INFO.stage.body}</InfoTip>
               </h2>
               <span className="chip" style={{ background: CATEGORY[event.category].wash, color: CATEGORY[event.category].ink }}>
                 {CATEGORY[event.category].label}
               </span>
               {event.hours_to_limit && (
-                <span className="num text-sm text-ink-2">
+                <span className="num text-sm text-ink-2 whitespace-nowrap">
                   <strong className="text-ink-1">{fmtHours(event.hours_to_limit.p50)}</strong> to shutdown · {fmtClock(analysis.now + event.hours_to_limit.p50 * 3600)}
                 </span>
               )}
