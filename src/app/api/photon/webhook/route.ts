@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { parseEvent } from "@/lib/photon/events";
 import { accept, emit, recent } from "@/lib/photon/inbox";
 import { verifyWebhook } from "@/lib/photon/verify";
@@ -33,12 +33,14 @@ export async function POST(request: Request) {
   const event = parseEvent(body);
   if (!accept(v.id, event)) return NextResponse.json({ ok: true, duplicate: true });
 
-  try {
-    await emit(event);
-  } catch (err) {
-    // Event is stored; a handler failure must not make Photon redeliver and double-act.
-    console.error("[photon] handler failed", err);
-  }
+  // Ack Photon immediately; act after the response so slow handlers never trigger a redelivery.
+  after(async () => {
+    try {
+      await emit(event);
+    } catch (err) {
+      console.error("[photon] handler failed", err);
+    }
+  });
   return NextResponse.json({ ok: true, kind: event.kind });
 }
 

@@ -12,10 +12,13 @@ export function wireDispatch() {
   g.__dispatchWired = true;
   onEvent(async (e) => {
     if (e.kind !== "inbound_text") return;
-    const result = await handleInbound({ spaceId: e.spaceId, text: e.text }, { getEvent: serverEvent });
     const client = photonClient();
-    if (!client || !result.reply) return;
-    await client.sendText(e.spaceId, result.reply, `reply:${e.messageId}`, await client.resolveSender(e.platform as never));
+    const sender = client ? await client.resolveSender(e.platform as never) : null;
+    // Typing bubble first (not awaited) so the tech sees we're on it while analysis runs.
+    if (client && sender) void client.typing(e.spaceId, sender);
+    const result = await handleInbound({ spaceId: e.spaceId, text: e.text }, { getEvent: serverEvent });
+    if (!client || !sender || !result.reply) return;
+    await client.sendText(e.spaceId, result.reply, `reply:${e.messageId}`, sender);
     for (const a of result.changed) update(a.key, {}, { at: Date.now(), dir: "out", text: result.reply });
   });
 }
