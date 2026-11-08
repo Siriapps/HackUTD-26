@@ -88,12 +88,13 @@ export function detectEvents(ds: Dataset, nowIdx: number, ctxs: FacilityCtx[] = 
       dpOff: run.map((i) => ctx.dp[i] - disp),
     };
   });
-  // Network-wide pooled baselines back up a facility that has not run long enough on its own.
-  const pooled = {
-    recv: robustBaseline(per.flatMap((p) => p.recv)),
-    flow: robustBaseline(per.flatMap((p) => p.flow)),
-    ppOff: robustBaseline(per.flatMap((p) => p.ppOff)),
-    dpOff: robustBaseline(per.flatMap((p) => p.dpOff)),
+  // Network-wide pooled baselines back up a facility that has not run long enough on its own
+  // (computed only when needed: they cost ~50 ms each on a week of data).
+  type Pooled = "recv" | "flow" | "ppOff" | "dpOff";
+  const pooledCache = new Map<Pooled, Baseline | null>();
+  const pooled = (k: Pooled) => {
+    if (!pooledCache.has(k)) pooledCache.set(k, robustBaseline(per.flatMap((p) => p[k])));
+    return pooledCache.get(k)!;
   };
   const shift = (b: Baseline | null, by: number) => (b ? { ...b, m: b.m + by } : null);
 
@@ -101,10 +102,10 @@ export function detectEvents(ds: Dataset, nowIdx: number, ctxs: FacilityCtx[] = 
   for (const p of per) {
     const disp = p.ctx.sys.disposal_site.pressure_psi;
     const b: Baselines = {
-      recv: robustBaseline(p.recv) ?? pooled.recv,
-      flow: robustBaseline(p.flow) ?? pooled.flow,
-      pp: shift(robustBaseline(p.ppOff) ?? pooled.ppOff, disp),
-      dp: shift(robustBaseline(p.dpOff) ?? pooled.dpOff, disp),
+      recv: robustBaseline(p.recv) ?? pooled("recv"),
+      flow: robustBaseline(p.flow) ?? pooled("flow"),
+      pp: shift(robustBaseline(p.ppOff) ?? pooled("ppOff"), disp),
+      dp: shift(robustBaseline(p.dpOff) ?? pooled("dpOff"), disp),
     };
     const fails = failures(ds, p.ctx, nowIdx, b);
     raw.push(...fails.events);
