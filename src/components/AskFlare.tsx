@@ -48,6 +48,28 @@ interface Turn {
   text: string;
 }
 
+/** Minimal markdown: **bold**, `code`, and line breaks. No library, no HTML injection. */
+function Rich({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return (
+    <p className="whitespace-pre-wrap">
+      {parts.map((part, i) =>
+        part.startsWith("**") && part.endsWith("**") ? (
+          <strong key={i} className="num">
+            {part.slice(2, -2)}
+          </strong>
+        ) : part.startsWith("`") && part.endsWith("`") ? (
+          <code key={i} className="num">
+            {part.slice(1, -1)}
+          </code>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </p>
+  );
+}
+
 /** Ask anything about the loaded data, the metrics, the failures and the plans. Grounded in the live analysis. */
 export function AskFlare() {
   const dataset = useOps((s) => s.dataset);
@@ -118,7 +140,7 @@ export function AskFlare() {
             )}
             {turns.map((t, i) => (
               <div key={i} className={`ask__turn ask__turn--${t.role}`}>
-                <p className="whitespace-pre-wrap">{t.text}</p>
+                <Rich text={t.text} />
               </div>
             ))}
             {busy && <div className="ask__turn ask__turn--model text-ink-3">Thinking…</div>}

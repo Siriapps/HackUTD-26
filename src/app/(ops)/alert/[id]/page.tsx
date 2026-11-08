@@ -1,11 +1,16 @@
 import { Suspense } from "react";
 import { AlertView } from "./AlertView";
 
-export default async function AlertPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+// Params are request-time data under cacheComponents: resolve them inside Suspense so the shell prerenders.
+export default function AlertPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <Suspense fallback={null}>
-      <AlertView id={id} />
+      <Resolved params={params} />
     </Suspense>
   );
+}
+
+async function Resolved({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <AlertView id={decodeURIComponent(id)} />;
 }
