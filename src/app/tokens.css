@@ -51,8 +51,9 @@
   --focus: #9db4ff;
   --ring: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--focus);
 
-  /* Type. Fonts are loaded in layout.tsx (next/font) and exposed as --font-plex-*. */
-  --font-sans: var(--font-plex-sans, var(--font-geist-sans)), "IBM Plex Sans", system-ui, sans-serif;
+  /* Type. Display = ZT Moven Bold Italic (layout.tsx); body = Helvetica Neue; numerals = Plex Mono. */
+  --font-display: var(--font-zt-moven), "ZT Moven", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono, var(--font-geist-mono)), "IBM Plex Mono", ui-monospace, monospace;
   /* 14px base, ratio ~1.2 (minor third): dense console, 8 steps. */
   --fs-xs: 0.6875rem;
@@ -134,6 +135,7 @@
   --color-accent-hover: var(--accent-hover);
   --color-focus: var(--focus);
   --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
   --font-mono: var(--font-mono);
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);

@@ -34,8 +34,8 @@ export function TopBar() {
 
   return (
     <header className="shrink-0 h-[52px] px-3 flex items-center gap-3 border-b border-line-1 bg-surface-1">
-      <Link href="/" className="font-semibold tracking-tight text-ink-1 no-underline whitespace-nowrap">
-        Avon Night Shift
+      <Link href="/" className="brand text-xl tracking-tight text-ink-1 no-underline whitespace-nowrap">
+        Flare
       </Link>
       <nav className="flex items-center gap-0.5 ml-1">
         {NAV.map((n) => {

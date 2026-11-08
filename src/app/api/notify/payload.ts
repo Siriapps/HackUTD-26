@@ -58,7 +58,7 @@ export function buildPayload(event: Event, folder: string, origin: string, kind:
   fields.push({ name: "Open", value: `[Field view](${fieldUrl}) · [Facility](${facilityUrl})` });
 
   return {
-    username: "Avon Night Shift",
+    username: "Flare",
     embeds: [
       {
         title: `${kind === "alert" ? "" : `${KIND_TITLE[kind]}: `}${CATEGORY_LABEL[event.category]} — ${event.facility}`,

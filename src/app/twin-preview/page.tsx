@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { TwinPreview } from "./TwinPreview";
 
-export const metadata: Metadata = { title: "Twin preview · Avon Night Shift" };
+export const metadata: Metadata = { title: "Twin preview · Flare" };
 
 /** Standalone harness for the digital twin: /twin-preview?folder=…&facility=…&t=…&event=…&plan=… */
 export default function Page() {
