@@ -51,8 +51,9 @@
   --focus: #9db4ff;
   --ring: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--focus);
 
-  /* Type. Fonts are loaded in layout.tsx (next/font) and exposed as --font-plex-*. */
-  --font-sans: var(--font-plex-sans, var(--font-geist-sans)), "IBM Plex Sans", system-ui, sans-serif;
+  /* Type. Display = ZT Moven Bold Italic (layout.tsx); body = Helvetica Neue; numerals = Plex Mono. */
+  --font-display: var(--font-zt-moven), "ZT Moven", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono, var(--font-geist-mono)), "IBM Plex Mono", ui-monospace, monospace;
   /* 14px base, ratio ~1.2 (minor third): dense console, 8 steps. */
   --fs-xs: 0.6875rem;
@@ -76,10 +77,29 @@
   /* Depth: borders carry structure; one shadow, for things that float. */
   --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.04);
 
-  /* Motion: state changes only. */
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-fast: 150ms;
-  --dur-base: 220ms;
+  /* Motion: one easing family, five durations. Motion shows a state change or a live quantity, never decoration. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1); /* moving between states */
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1); /* arriving: decelerate */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1); /* leaving: accelerate */
+  --ease-out: var(--ease-enter);
+  --dur-instant: 50ms; /* toggle, checkbox */
+  --dur-fast: 120ms; /* hover, tooltip, chip */
+  --dur-base: 200ms; /* default: dropdown, focus ring, row select */
+  --dur-slow: 320ms; /* panel or drawer slide, chart series swap */
+  --dur-deliberate: 600ms; /* the one authored moment on a screen, e.g. a countdown turning red */
+  --pulse-period: 1s; /* fault pulse, twin and countdown alike */
+}
+
+/* Reduced motion: every duration collapses; what remains is an instant state change. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms;
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+    --dur-deliberate: 0ms;
+    --pulse-period: 0s;
+  }
 }
 
 /* Tailwind v4 utilities: bg-surface-1, text-ink-2, border-line-1, text-cat-failure, bg-cat-leak-soft,
@@ -115,12 +135,16 @@
   --color-accent-hover: var(--accent-hover);
   --color-focus: var(--focus);
   --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
   --font-mono: var(--font-mono);
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
   --radius-xl: 14px;
   --shadow-pop: var(--shadow-pop);
+  --ease-standard: var(--ease-standard);
+  --ease-enter: var(--ease-enter);
+  --ease-exit: var(--ease-exit);
   --ease-out: var(--ease-out);
 }
 

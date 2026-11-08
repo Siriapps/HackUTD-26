@@ -35,7 +35,7 @@ export function handoffText(analysis: Analysis, dataset: Dataset): string {
   const leaks = alerts.filter((e) => e.category === "pipeline_leak");
   const worn = alerts.filter((e) => e.category === "pump_degradation");
   const lines: string[] = [];
-  lines.push(`Avon night shift handoff — ${fmtDateTime(now)} (${dataset.folder})`);
+  lines.push(`Flare night shift handoff — ${fmtDateTime(now)} (${dataset.folder})`);
   if (!alerts.length) {
     lines.push("All systems nominal: no pump failures, leaks or worn pumps in progress.");
   } else {
