@@ -36,3 +36,8 @@ to the PR (desktop 1440 and 1024). `npm run build` and `npx tsc --noEmit` clean.
 
 ## Skills
 `frontend-design`, `impeccable`, `dataviz` (charts), `superpowers:verification-before-completion`.
+
+## Added: `/admin` analytics (plan item 17)
+Issue frequency per system/asset/category (bar + heatmap by day×system), MTBF per pump, events per day, cost of
+recommended plan vs do-nothing per failure and total cost avoided, plan adherence/outcome stats (from
+`src/lib/memory/outcomes.ts` once W5 lands; stub with zeros), fleet utilisation. Derived from `Analysis.events` only.

@@ -111,6 +111,13 @@ type Action = {type:'dispatch_truck',facility_id,trucks,trips_per_truck} | {type
 15. **Three.js digital twin** (`Twin3D`) — per facility: tank cylinder with animated fill to live `level_pct` and warning/shutdown rings, pump glowing by status (fault = amber pulse), pipeline tube with flow particles scaled to `receive_flow_bpd`, leak = drip particles at pipeline, truck arrival animation when a plan runs. Rendered on facility page and as a hero on the dashboard. Degrades to a 2D SVG tank if WebGL is unavailable.
 16. **Mobile layout** for `/field`, desktop for ops; **footer "© 2026 Avon Corps"** on every page.
 
+### F. Added after kickoff (team request)
+17. **Admin analytics** `/admin` (W2) — issue frequency per system/asset/category, mean time between failures, events per day, cost of recommended plan vs do-nothing (cost avoided), plan adherence and outcome stats from item 20, fleet utilisation. All derived from `Analysis.events` + outcomes; no new physics.
+18. **Video analysis report** (W3) — during a Live session capture keyframes (on tool call `log_observation`, on user tap, and every ~30 s); send them with context to `generateContent` for a structured JSON visual report `{observed_condition, severity, components_visible, matches_telemetry: bool, notes, photos[]}`; attach to the incident and to the ticket; show on the field page and admin page. Reporting becomes video-based, not voice-only.
+19. **Tickets** (W3) — `POST /api/ticket` opens a GitHub Issue per event (title, category/system labels, countdown, plan, evidence, deep links, visual report), assignee from `ops-roster.json` (role → GitHub handle / phone / Discord id); auto-close with outcome when the event resolves; Discord message carries the issue link. Needs `GITHUB_TOKEN` in `.env.local` (repo scope) and `TICKET_REPO`.
+20. **Outcome tracking** (W5) — for every resolved pump failure compare recommended plan vs what the telemetry shows happened (tank peak, tripped or not, shut-in duration, implied cost); for leaks/degradation record time-to-resolution. Persist as `data/outcomes/*.json` (committed by the nightly job) + localStorage during the session. Feeds 17 and 21.
+21. **Nightly retraining** (W5) — `.github/workflows/nightly-retrain.yml` (cron) runs `scripts/retrain/` : refits per-category detection thresholds and confidence weights from outcomes + answer-key-free telemetry statistics, refits the degradation-forecast regression, optionally trains a small anomaly classifier on the external Kaggle SCADA pipeline dataset (`data/external/`, user-provided) as a cross-dataset prior; writes `src/lib/calibration/calibration.json` and opens a PR. The app reads calibration.json at load (defaults when absent). Honest framing on stage: recalibration + regression refit, not deep learning.
+
 ---
 
 ## Build plan — 4 builders × Claude subagents (12 h)
@@ -131,6 +138,7 @@ type Action = {type:'dispatch_truck',facility_id,trucks,trips_per_truck} | {type
 | **W2 Ops dashboard** | builder 2 | alerts view, map, trends, timeline scrub, folder picker, handoff, events.json, footer | all screens on mock_test look finished; time travel works |
 | **W3 Technician + AI** | builder 3 | field page, Gemini Live session, incident memory, Discord notify, Photon stretch | live call on a phone with injected context; alert arrives in Discord |
 | **W4 Twin + forecast** | builder 4 | Three.js twin, degradation forecast, fleet what-if, design system polish | twin animates live state; forecast shows days-to-fail for each worn pump |
+| **W5 Outcomes + retraining** | subagent | outcome tracking, calibration file + loader, nightly GitHub Action, Kaggle SCADA prior | nightly workflow runs locally via `act`/manual dispatch and opens a PR with calibration.json; outcomes power /admin |
 
 Subagent usage: one Fable subagent per task (TDD for W1; implementation + screenshot verification for UI). Reviewer subagent on W1 before integration. Opus only if a Fable subagent stalls twice.
 

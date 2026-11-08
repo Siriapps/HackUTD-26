@@ -40,3 +40,12 @@ that cites the real countdown and plan; a Discord message lands with the deep li
 
 ## Skills
 `frontend-design`, `impeccable`, `mobile-native`, `superpowers:verification-before-completion`.
+
+## Added: video analysis report + tickets (plan items 18, 19)
+- Keyframe capture during Live (on `log_observation`, on tap, every ~30 s) → `generateContent` with context →
+  structured `VisualReport {observed_condition, severity, components_visible, matches_telemetry, notes, photos[]}`;
+  attach to incident memory + ticket; render on field page (and expose a component W2 can drop into /admin).
+- `POST /api/ticket`: GitHub Issue per event via REST (`GITHUB_TOKEN`, `TICKET_REPO` env), labels category/system,
+  assignee from `ops-roster.json` (role → github handle / phone / discord id; include a sample roster), body with
+  countdown, plan, evidence, deep links, visual report; `PATCH` to close with outcome when resolved; Discord embed
+  links the issue. Degrade gracefully without token (return the would-be payload).
