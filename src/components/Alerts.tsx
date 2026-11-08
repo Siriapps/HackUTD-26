@@ -12,7 +12,7 @@ import { describeActions, planLine } from "@/lib/export/handoff";
 import { dispatch } from "@/lib/export/notify";
 
 /** Alerts in SPEC order: pump failures by hours_to_limit, then leaks and worn pumps. */
-export function Alerts({ compact = false }: { compact?: boolean }) {
+export function Alerts({ compact = false, selected = null, onSelect }: { compact?: boolean; selected?: string | null; onSelect?: (id: string) => void }) {
   const analysis = useOps((s) => s.analysis);
   const dataset = useOps((s) => s.dataset);
   const nowOverride = useOps((s) => s.nowOverride);
@@ -36,7 +36,7 @@ export function Alerts({ compact = false }: { compact?: boolean }) {
   return (
     <ol className="divide-y divide-line-1">
       {alerts.map((e, i) => (
-        <AlertRow key={e.id} e={e} rank={e.category === "pump_failure" ? i + 1 : null} now={now} horizon={horizon} compact={compact} folder={dataset.folder} />
+        <AlertRow key={e.id} e={e} rank={e.category === "pump_failure" ? i + 1 : null} now={now} horizon={horizon} compact={compact} folder={dataset.folder} selected={selected === e.id} onSelect={onSelect} />
       ))}
     </ol>
   );
@@ -49,6 +49,8 @@ function AlertRow({
   horizon,
   compact,
   folder,
+  selected = false,
+  onSelect,
 }: {
   e: Event;
   rank: number | null;
@@ -56,6 +58,8 @@ function AlertRow({
   horizon: number;
   compact: boolean;
   folder: string;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
 }) {
   const [sent, setSent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -108,9 +112,13 @@ function AlertRow({
 
   const q = `?folder=${encodeURIComponent(folder)}`;
   return (
-    <li className="relative hover:bg-surface-2 transition-colors duration-[var(--dur-fast)]">
-      {/* The whole row opens the facility; the inner controls sit above this stretched link. */}
-      <Link href={`/facility/${e.facility}${q}`} className="absolute inset-0 z-0 rounded-sm focus-visible:outline-none focus-visible:shadow-[var(--ring)]" aria-label={`Open ${e.facility}`} tabIndex={-1} />
+    <li className={`relative transition-colors duration-[var(--dur-fast)] ${selected ? "bg-surface-2 shadow-[inset_3px_0_0_var(--cat-failure)]" : "hover:bg-surface-2"}`} aria-current={selected ? "true" : undefined}>
+      {/* The whole row selects (on the board) or opens the facility; the inner controls sit above this stretched control. */}
+      {onSelect ? (
+        <button type="button" className="absolute inset-0 z-0 rounded-sm focus-visible:outline-none focus-visible:shadow-[var(--ring)]" aria-label={`Select ${e.facility}`} onClick={() => onSelect(e.id)} />
+      ) : (
+        <Link href={`/facility/${e.facility}${q}`} className="absolute inset-0 z-0 rounded-sm focus-visible:outline-none focus-visible:shadow-[var(--ring)]" aria-label={`Open ${e.facility}`} tabIndex={-1} />
+      )}
       <div className={`relative z-10 pointer-events-none grid grid-cols-[44px_minmax(0,1fr)] gap-x-3 ${compact ? "px-3 py-2.5" : "px-4 py-3"}`}>
         <div className="pt-0.5">
           {htl != null ? (

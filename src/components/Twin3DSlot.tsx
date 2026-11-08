@@ -8,7 +8,7 @@ import { facilityIndex, ongoingAt } from "@/store/select";
  * Facility-page mount for the digital twin. Lazy Three.js scene lives inside `Twin3D`
  * (`next/dynamic`, `ssr: false`); falls back to `TankSvg` without WebGL.
  */
-export function Twin3DSlot({ facilityId }: { facilityId: string }) {
+export function Twin3DSlot({ facilityId, bare = false }: { facilityId: string; bare?: boolean }) {
   const dataset = useOps((s) => s.dataset);
   const analysis = useOps((s) => s.analysis);
 
@@ -45,6 +45,23 @@ export function Twin3DSlot({ facilityId }: { facilityId: string }) {
   const opsF = dataset.ops.systems[system.id]?.facilities[facility.id];
   const trucking = opsF ? { response_min: opsF.response_min, cycle_min: opsF.cycle_min } : undefined;
 
+  if (bare) {
+    return (
+      <div className="absolute inset-0" data-twin-slot={facilityId}>
+        <Twin3D
+          facility={facility}
+          readings={readingsAt(dataset, facility, now)}
+          limits={dataset.network.defaults.tank_limits_pct}
+          t={now}
+          event={event}
+          plan={plan}
+          trucking={trucking}
+          className="absolute inset-0 rounded-none border-0"
+          height="100%"
+        />
+      </div>
+    );
+  }
   return (
     <section className="panel h-full min-h-[220px] flex flex-col overflow-hidden" data-twin-slot={facilityId}>
       <header className="panel-head shrink-0">

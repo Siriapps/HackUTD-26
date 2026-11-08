@@ -10,7 +10,7 @@ import { fmtClock, fmtMoney, fmtPct } from "./format";
  * Projected tank level under every option the optimiser considered. The recommended plan is the bright line;
  * feasible alternatives are grey, options that still trip are red. Hover a row to lift its curve.
  */
-export function PlanCompare({ event, dataset }: { event: Event; dataset: Dataset }) {
+export function PlanCompare({ event, dataset, compact = false }: { event: Event; dataset: Dataset; compact?: boolean }) {
   const plan = event.plan!;
   const [hover, setHover] = useState<string | null>(null);
   const options = useMemo(() => [plan.recommended, ...plan.alternatives], [plan]);
@@ -41,7 +41,7 @@ export function PlanCompare({ event, dataset }: { event: Event; dataset: Dataset
   const fleetLine = event.evidence.find((l) => /trucks? (free|allocated|used)/.test(l));
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_320px] max-[1100px]:grid-cols-1 gap-4">
+    <div className={compact ? "grid grid-cols-1 gap-3" : "grid grid-cols-[minmax(0,1fr)_320px] max-[1100px]:grid-cols-1 gap-4"}>
       <div className="min-w-0">
         {/* The why, in one sentence, from the numbers on hand. */}
         <p className="mb-2 text-sm text-ink-2 leading-relaxed">
@@ -60,7 +60,7 @@ export function PlanCompare({ event, dataset }: { event: Event; dataset: Dataset
             </>
           )}
         </p>
-      <div className="h-[300px] min-w-0">
+      <div className={compact ? "h-[190px] min-w-0" : "h-[300px] min-w-0"}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 12, right: 104, bottom: 4, left: 0 }}>
             <CartesianGrid stroke="var(--line-1)" vertical={false} />
