@@ -65,7 +65,7 @@ function FiredCard({ f, nowMs, folder, event }: { f: Fired; nowMs: number; folde
     },
   ];
   return (
-    <article className="firing__card" style={{ borderLeftColor: cat.ink }}>
+    <article className="firing__card">
       <header className="firing__head">
         <span className="chip" style={{ background: cat.wash, color: cat.ink }}>
           {cat.label}

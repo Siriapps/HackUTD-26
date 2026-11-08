@@ -151,9 +151,8 @@
 .firing__card {
   background: var(--surface-2);
   border: 1px solid var(--line-2);
-  border-left: 3px solid var(--cat-failure);
   border-radius: var(--r-md);
-  box-shadow: var(--shadow-pop);
+  box-shadow: var(--shadow-pop), inset 0 1px 0 rgb(255 255 255 / 0.05);
   padding: 10px 12px 8px;
   animation: firing-in var(--dur-slow) var(--ease-enter);
 }
