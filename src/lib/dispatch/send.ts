@@ -47,9 +47,9 @@ export async function sendAlert(input: SendAlertInput): Promise<SendResult> {
     return { ok: true, sent: false, reason, to, text };
   }
 
-  // Same event + plan → same key → Photon drops the duplicate; a re-optimised plan is a new message.
-  const planSig = event.plan ? `${event.plan.recommended.label}|${Math.round(event.plan.recommended.cost)}` : "inspect";
-  const key = `alert:${folder}:${event.id}:${hash(`${planSig}|${input.asOf ?? ""}`)}`;
+  // Same event + same words → same key → Photon drops the duplicate. Any change in the text (new plan,
+  // new wording after a deploy) is a new key; Photon rejects a reused key with a different body (422).
+  const key = `alert:${folder}:${event.id}:${hash(`${text}|${input.asOf ?? ""}`)}`;
   const repeat = !!getAlert(alertKey(folder, event.id));
   try {
     const { space, sender } = await client.directSpace("imessage", to);
