@@ -70,18 +70,21 @@ function AlertRow({
       now,
       text: alertText(e, now),
       event: e,
-      links: { facility: `/facility/${e.facility}`, field: `/field/${e.id}`, dashboard: "/" },
+      links: { facility: `/facility/${e.facility}?folder=${encodeURIComponent(folder)}`, field: `/field/${e.id}?folder=${encodeURIComponent(folder)}`, dashboard: `/?folder=${encodeURIComponent(folder)}` },
     });
     setSent(res.message);
     setBusy(false);
   }
 
+  const q = `?folder=${encodeURIComponent(folder)}`;
   return (
     <li className="relative hover:bg-surface-2 transition-colors duration-[var(--dur-fast)]">
-      <div className={`grid grid-cols-[44px_minmax(0,1fr)] gap-x-3 ${compact ? "px-3 py-2.5" : "px-4 py-3"}`}>
+      {/* The whole row opens the facility; the inner controls sit above this stretched link. */}
+      <Link href={`/facility/${e.facility}${q}`} className="absolute inset-0 z-0 rounded-sm focus-visible:outline-none focus-visible:shadow-[var(--ring)]" aria-label={`Open ${e.facility}`} tabIndex={-1} />
+      <div className={`relative z-10 pointer-events-none grid grid-cols-[44px_minmax(0,1fr)] gap-x-3 ${compact ? "px-3 py-2.5" : "px-4 py-3"}`}>
         <div className="pt-0.5">
           {htl != null ? (
-            <CountdownRing hours={htl} horizonHours={horizon} size={44}>
+            <CountdownRing hours={htl} horizonHours={horizon} size={44} caption="tank">
               {e.level_pct != null ? `${Math.round(e.level_pct)}%` : ""}
             </CountdownRing>
           ) : (
@@ -89,7 +92,7 @@ function AlertRow({
               className="inline-grid place-items-center w-[44px] h-[44px] rounded-full"
               style={{ background: cat.wash, color: cat.ink }}
             >
-              <span className="num text-[10px] text-ink-2">{fmtHours(elapsedH)}</span>
+              <span className="num text-[11px] text-ink-2">{fmtHours(elapsedH)}</span>
             </span>
           )}
         </div>
@@ -97,12 +100,12 @@ function AlertRow({
         <div className="min-w-0">
           <div className="flex items-center gap-2 min-w-0">
             {rank != null && <span className="num text-sm text-ink-3 w-3">{rank}</span>}
-            <Link href={`/facility/${e.facility}`} className="num font-semibold text-ink-1 truncate hover:underline">
+            <Link href={`/facility/${e.facility}${q}`} className="pointer-events-auto num font-semibold text-ink-1 truncate hover:underline">
               {e.facility}
             </Link>
             <CategoryChip category={e.category} compact={compact} />
-            <span className="ml-auto num text-xs text-ink-3" title="Detector confidence">
-              {Math.round(e.confidence * 100)}%
+            <span className="ml-auto text-xs text-ink-3 whitespace-nowrap" title="Detector confidence that this is a real event">
+              conf <span className="num">{Math.round(e.confidence * 100)}%</span>
             </span>
           </div>
 
@@ -128,19 +131,17 @@ function AlertRow({
             </div>
           )}
 
-          <div className="mt-1 text-sm">
+          <div className="mt-1.5 text-sm">
             {e.plan ? (
-              <>
-                <span className="text-ink-3">Plan</span>{" "}
-                <span className="num text-ink-1">{describeActions(e.plan.recommended.actions)}</span>{" "}
-                <span className="num font-semibold text-ink-1">{fmtMoney(e.plan.recommended.cost)}</span>
+              <div className="flex items-baseline gap-x-2 flex-wrap">
+                <span className="num text-lg font-semibold leading-none" style={{ color: e.plan.recommended.feasible ? "var(--ok)" : "var(--shutdown)" }}>
+                  {fmtMoney(e.plan.recommended.cost)}
+                </span>
+                <span className="text-ink-1">{describeActions(e.plan.recommended.actions)}</span>
                 {!compact && e.plan.alternatives[0] && (
-                  <span className="text-ink-3">
-                    {" "}
-                    · next best {fmtMoney(e.plan.alternatives[0].cost)}
-                  </span>
+                  <span className="text-ink-3 text-xs">next best {fmtMoney(e.plan.alternatives[0].cost)}</span>
                 )}
-              </>
+              </div>
             ) : (
               <>
                 <span className="text-ink-3">Action</span> <span className="text-ink-1">{describeActions(e.actions)}</span>
@@ -158,11 +159,11 @@ function AlertRow({
             </ul>
           )}
 
-          <div className="mt-2 flex items-center gap-1 text-xs">
-            <Link href={`/facility/${e.facility}`} className="btn btn-quiet h-6 text-xs">
+          <div className="mt-2 flex items-center gap-1 text-xs pointer-events-auto">
+            <Link href={`/facility/${e.facility}${q}`} className="btn btn-quiet h-6 text-xs">
               {e.plan ? "Open plan" : "Open facility"}
             </Link>
-            <Link href={`/field/${e.id}`} className="btn btn-quiet h-6 text-xs">
+            <Link href={`/field/${e.id}${q}`} className="btn btn-quiet h-6 text-xs">
               Field view
             </Link>
             <button type="button" className="btn btn-quiet h-6 text-xs" onClick={send} disabled={busy}>

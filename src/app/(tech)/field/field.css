@@ -13,7 +13,7 @@
   --green: var(--ok, #3ddc97);
   --red: var(--shutdown, #ff5a5f);
   --cat: var(--amber);
-  --bar-h: 8.25rem;
+  --bar-h: 5rem;
   background: var(--bg);
   color: var(--text);
   color-scheme: dark;
@@ -32,7 +32,7 @@
 body:has(.field) {
   background: var(--surface-0, #070b14);
   color: var(--text-3, #7c89a6);
-  padding-bottom: calc(var(--bar-h, 8.25rem) + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--bar-h, 5rem) + env(safe-area-inset-bottom));
 }
 body:has(.field) footer {
   color: var(--text-3, #7c89a6);

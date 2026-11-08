@@ -4,11 +4,14 @@ export function CountdownRing({
   horizonHours,
   size = 40,
   children,
+  caption,
 }: {
   hours: number;
   horizonHours: number;
   size?: number;
   children?: React.ReactNode;
+  /** Tiny word under the value, e.g. "tank", so the number is never a bare percentage. */
+  caption?: string;
 }) {
   const stroke = 3;
   const r = (size - stroke) / 2;
@@ -33,7 +36,10 @@ export function CountdownRing({
         />
         {urgent && <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={1} className="ring-pulse" />}
       </svg>
-      <span className="relative num text-[10px] leading-none text-ink-2">{children}</span>
+      <span className="relative grid place-items-center leading-none">
+        <span className="num text-[11px] text-ink-1">{children}</span>
+        {caption && <span className="text-[9px] uppercase tracking-wide text-ink-3 mt-px">{caption}</span>}
+      </span>
     </span>
   );
 }
