@@ -24,18 +24,18 @@ struct CircleButton: View {
       if let text {
         VStack(spacing: 2) {
           Image(systemName: icon)
-            .font(.system(size: 14))
+            .font(.system(size: 16, weight: .semibold))
           Text(text)
-            .font(.system(size: 10, weight: .medium))
+            .font(.system(size: 11, weight: .semibold))
         }
       } else {
         Image(systemName: icon)
-          .font(.system(size: 16))
+          .font(.system(size: 17, weight: .semibold))
       }
     }
-    .foregroundStyle(.black)
+    .foregroundStyle(FlareColor.onAccent)
     .frame(width: 56, height: 56)
-    .background(.white)
+    .background(FlareColor.text1)
     .clipShape(Circle())
   }
 }

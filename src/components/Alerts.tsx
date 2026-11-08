@@ -251,6 +251,9 @@ function AlertRow({
             <Link href={`/field/${e.id}${q}`} className="btn btn-quiet h-6 text-xs">
               Field view
             </Link>
+            <Link href={`/dispatch/${e.id}${q}`} className="btn btn-quiet h-6 text-xs">
+              Live
+            </Link>
             <button type="button" className={`btn h-6 text-xs ${armed ? "btn-primary" : "btn-quiet"}`} onClick={send} disabled={busy}>
               {busy ? "Sending…" : armed ? "Tap again to text" : sentAt ? "Text again" : "Text on-call"}
             </button>

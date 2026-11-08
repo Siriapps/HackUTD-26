@@ -23,21 +23,12 @@ struct CustomButton: View {
   enum ButtonStyle {
     case primary, destructive
 
-    var backgroundColor: Color {
+    var flareKind: FlareButtonStyle.Kind {
       switch self {
       case .primary:
-        return .appPrimary
+        return .primary
       case .destructive:
-        return .destructiveBackground
-      }
-    }
-
-    var foregroundColor: Color {
-      switch self {
-      case .primary:
-        return .white
-      case .destructive:
-        return .destructiveForeground
+        return .destructive
       }
     }
   }
@@ -45,14 +36,8 @@ struct CustomButton: View {
   var body: some View {
     Button(action: action) {
       Text(title)
-        .font(.system(size: 15, weight: .semibold))
-        .foregroundStyle(style.foregroundColor)
-        .frame(maxWidth: .infinity)
-        .frame(height: 56)
-        .background(style.backgroundColor)
-        .cornerRadius(30)
     }
+    .buttonStyle(FlareButtonStyle(kind: style.flareKind))
     .disabled(isDisabled)
-    .opacity(isDisabled ? 0.6 : 1.0)
   }
 }

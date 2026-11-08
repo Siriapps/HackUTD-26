@@ -32,12 +32,16 @@ struct MainAppView: View {
       if showDiagnostics {
         CameraView(wearables: wearables, wearablesVM: viewModel)
           .safeAreaInset(edge: .top, spacing: 0) {
-            Button("‹ Flare Live") { showDiagnostics = false }
-              .font(.footnote.weight(.semibold))
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .padding(.horizontal, 16)
-              .padding(.vertical, 6)
-              .background(.black)
+            Button { showDiagnostics = false } label: {
+              Label("Flare Live", systemImage: "chevron.left")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(FlareColor.accent)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, FlareSpace.md)
+            .background(.black)
           }
       } else {
         FlareLiveView(wearables: wearables, wearablesVM: viewModel) { showDiagnostics = true }

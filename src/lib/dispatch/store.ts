@@ -1,6 +1,7 @@
 // In-process dispatch state: which alerts are out, to whom, and what the technician decided.
-// ponytail: memory only (survives HMR via globalThis); swap for Tiger Data when the persistence layer lands.
+// Survives HMR via globalThis; Tiger Data is the restart-proof copy (hydrateDispatch on /api/dispatch/state).
 import type { Action } from "@/lib/data/types";
+import { annotateIncident, logMessage, saveDispatch } from "../db/incidents";
 import type { Intent } from "./replies";
 
 export type AlertStatus = "awaiting" | "approved" | "rejected" | "resolved" | "escalated";
@@ -67,8 +68,6 @@ const alerts: Map<string, OpenAlert> = (g.__dispatch ??= new Map());
 
 export const alertKey = (folder: string, eventId: string) => `${folder}|${eventId}`;
 
-import { annotateIncident, logMessage } from "../db/incidents";
-
 export function upsertAlert(
   a: Omit<OpenAlert, "key" | "log" | "status" | "escalation" | "watchers"> & Partial<Pick<OpenAlert, "status">>,
 ): OpenAlert {
@@ -78,11 +77,17 @@ export function upsertAlert(
     ? { ...prev, spaceId: a.spaceId, handle: a.handle, asOf: a.asOf ?? prev.asOf } // keep sentAt: a re-send must not reset escalation
     : { ...a, key, status: a.status ?? "awaiting", escalation: 0, watchers: [], log: [] };
   alerts.set(key, next);
+  saveDispatch(next);
   return next;
 }
 
 export const getAlert = (key: string) => alerts.get(key);
 export const allAlerts = () => [...alerts.values()].sort((a, b) => b.sentAt - a.sentAt);
+
+/** Fill keys this process does not already have (used after a restart to reload Tiger Data). */
+export function restoreMissing(threads: OpenAlert[]) {
+  for (const t of threads) if (!alerts.has(t.key)) alerts.set(t.key, t);
+}
 
 export const inSpace = (a: OpenAlert, spaceId: string) => a.spaceId === spaceId || (a.watchers ?? []).some((w) => w.spaceId === spaceId);
 
@@ -98,11 +103,40 @@ export function update(key: string, patch: Partial<OpenAlert>, entry?: LogEntry)
   if (!a) return undefined;
   const next = { ...a, ...patch, log: entry ? [...a.log, entry] : a.log };
   alerts.set(key, next);
-  if (entry) logMessage({ folder: a.folder, eventId: a.eventId, channel: "photon", direction: entry.dir, recipient: a.handle, body: entry.text, payload: { intent: (entry as { intent?: string }).intent, by: (entry as { by?: string }).by } });
+  saveDispatch(next);
+  if (entry) {
+    logMessage({
+      folder: a.folder,
+      eventId: a.eventId,
+      channel: "photon",
+      direction: entry.dir,
+      recipient: a.handle,
+      body: entry.text,
+      payload: { intent: entry.intent, by: entry.by, spaceId: next.spaceId },
+    });
+  }
   if (patch.status) annotateIncident(a.folder, a.eventId, { status: patch.status });
+  return next;
+}
+
+/**
+ * Append a glasses (Gemini Live) transcript line to the event's thread so it shows under the
+ * on-call / Event Threads board. Creates a "glasses" thread if the event has none yet.
+ * Messages are already persisted by /api/live/events (channel 'gemini'), so this only touches the thread log.
+ */
+export function appendLiveLine(folder: string, eventId: string, entry: LogEntry & { id?: string }) {
+  const key = alertKey(folder, eventId);
+  let a = alerts.get(key);
+  if (!a) a = upsertAlert({ eventId, folder, spaceId: "glasses", handle: "glasses", sentAt: entry.at });
+  if (entry.id && a.log.some((l) => (l as LogEntry & { id?: string }).id === entry.id)) return a;
+  const next = { ...a, log: [...a.log, entry] };
+  alerts.set(key, next);
+  saveDispatch(next);
   return next;
 }
 
 export function _resetStore() {
   alerts.clear();
+  const g2 = globalThis as unknown as { __dispatchHydrated?: boolean };
+  g2.__dispatchHydrated = false;
 }

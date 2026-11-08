@@ -47,7 +47,7 @@ struct CameraView: View {
       // Full-bleed preview (or a dark placeholder) fills the screen so overlaying
       // the controls never reflows it.
       previewBackground
-        .edgesIgnoringSafeArea(.all)
+        .ignoresSafeArea()
 
       if let preview = viewModel.activePreview {
         CapturePreviewView(
@@ -67,17 +67,17 @@ struct CameraView: View {
               showSettingsMenu = false
             }
           }
-          .edgesIgnoringSafeArea(.all)
+          .ignoresSafeArea()
       }
 
       VStack(spacing: 0) {
         topBar
-          .padding(.horizontal, 20)
-          .padding(.top, 16)
-          .padding(.bottom, 40)
+          .padding(.horizontal, FlareSpace.md)
+          .padding(.top, FlareSpace.xs)
+          .padding(.bottom, FlareSpace.xl + FlareSpace.xs)
           .background(
             LinearGradient(colors: [.black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom)
-              .edgesIgnoringSafeArea(.top)
+              .ignoresSafeArea(edges: .top)
           )
 
         Spacer(minLength: 0)
@@ -102,8 +102,8 @@ struct CameraView: View {
           onCopyLog: { UIPasteboard.general.string = StreamDiagnosticsLog.shared.text },
           onClearLog: { viewModel.clearDiagnostics() }
         )
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
+        .padding(.horizontal, FlareSpace.md)
+        .padding(.bottom, FlareSpace.xs)
 
         bottomBar
       }
@@ -160,19 +160,19 @@ struct CameraView: View {
   /// `pause.fill` status glyph (not a circled/button shape) — resume is a glasses
   /// gesture, not an on-screen control.
   private var pausedOverlay: some View {
-    VStack(spacing: 8) {
+    VStack(spacing: FlareSpace.xs) {
       Image(systemName: "pause.fill")
         .font(.system(size: 36))
-        .foregroundStyle(.white)
+        .foregroundStyle(FlareColor.text1)
       Text("Paused")
-        .font(.system(size: 20, weight: .semibold))
-        .foregroundStyle(.white)
+        .font(.title3.weight(.semibold))
+        .foregroundStyle(FlareColor.text1)
       Text("Tap your glasses to resume.")
-        .font(.system(size: 15))
+        .font(.subheadline)
         .multilineTextAlignment(.center)
-        .foregroundStyle(Color.white.opacity(0.7))
+        .foregroundStyle(FlareColor.text2)
     }
-    .padding(.horizontal, 24)
+    .padding(.horizontal, FlareSpace.lg)
     .accessibilityIdentifier("paused_overlay")
   }
 
@@ -203,39 +203,38 @@ struct CameraView: View {
   }
 
   private func placeholder(title: String, subtitle: String?, showWaitingRow: Bool) -> some View {
-    VStack(spacing: 12) {
+    VStack(spacing: FlareSpace.sm) {
       Image(.cameraAccessIcon)
         .resizable()
         .renderingMode(.template)
-        .foregroundStyle(.white)
+        .foregroundStyle(FlareColor.accent)
         .aspectRatio(contentMode: .fit)
-        .frame(width: 88)
+        .frame(width: 72)
+        .accessibilityHidden(true)
 
       Text(title)
-        .font(.system(size: 20, weight: .semibold))
-        .foregroundStyle(.white)
+        .font(.title3.weight(.semibold))
+        .foregroundStyle(FlareColor.text1)
 
       if let subtitle {
         Text(subtitle)
-          .font(.system(size: 15))
+          .font(.subheadline)
           .multilineTextAlignment(.center)
-          .foregroundStyle(Color.white.opacity(0.7))
+          .foregroundStyle(FlareColor.text2)
       }
 
       if showWaitingRow {
-        HStack(spacing: 8) {
+        HStack(spacing: FlareSpace.xs) {
           Image(systemName: "hourglass")
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .foregroundStyle(Color.white.opacity(0.7))
-            .frame(width: 16, height: 16)
+            .font(.footnote)
+            .foregroundStyle(FlareColor.text2)
           Text("Waiting for an active device")
-            .font(.system(size: 14))
-            .foregroundStyle(Color.white.opacity(0.7))
+            .font(.footnote)
+            .foregroundStyle(FlareColor.text2)
         }
       }
     }
-    .padding(.horizontal, 24)
+    .padding(.horizontal, FlareSpace.lg)
   }
 
   // MARK: - Top bar
@@ -243,8 +242,8 @@ struct CameraView: View {
   /// Top bar: compact live SDK state stacked on the left so the lifecycle is
   /// legible without heavy chrome, settings/disconnect on the right.
   private var topBar: some View {
-    HStack(alignment: .top, spacing: 12) {
-      VStack(alignment: .leading, spacing: 6) {
+    HStack(alignment: .top, spacing: FlareSpace.sm) {
+      VStack(alignment: .leading, spacing: FlareSpace.xs) {
         statusChip(label: "Session", value: viewModel.sessionStateText, active: viewModel.isSessionActive, present: viewModel.hasSession)
         statusChip(label: "Stream", value: viewModel.streamStateText, active: viewModel.isStreaming, present: viewModel.hasStream)
       }
@@ -257,6 +256,7 @@ struct CameraView: View {
           showSettingsMenu.toggle()
         }
       }
+      .accessibilityLabel("Settings")
       .overlay(alignment: .trailing) {
         if showSettingsMenu {
           CustomButton(
@@ -267,8 +267,8 @@ struct CameraView: View {
             wearablesVM.disconnectGlasses()
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { showSettingsMenu = false }
           }
-          .frame(width: 120)
-          .offset(y: 44)
+          .frame(width: 148)
+          .offset(y: 52)
           .transition(.scale(scale: 0.01, anchor: .topTrailing).combined(with: .opacity))
         }
       }
@@ -278,13 +278,16 @@ struct CameraView: View {
   private func statusChip(label: String, value: String, active: Bool, present: Bool) -> some View {
     HStack(spacing: 6) {
       Circle()
-        .fill(active ? Color.green : (present ? Color.yellow : Color.gray))
-        .frame(width: 7, height: 7)
+        .fill(active ? FlareColor.ok : (present ? FlareColor.warn : FlareColor.text3))
+        .frame(width: 8, height: 8)
+        .accessibilityHidden(true)
       Text("\(label): \(value)")
-        .font(.system(size: 12, weight: .medium))
-        .monospaced()
-        .foregroundStyle(Color.white.opacity(0.85))
+        .font(.flareMono(.caption, weight: .medium))
+        .foregroundStyle(FlareColor.text1)
     }
+    .padding(.horizontal, 10)
+    .padding(.vertical, FlareSpace.xxs)
+    .background(.black.opacity(0.45), in: Capsule())
   }
 
   private func iconButton(_ systemName: String, id: String, action: @escaping () -> Void) -> some View {
@@ -294,7 +297,8 @@ struct CameraView: View {
         .aspectRatio(contentMode: .fit)
         .foregroundStyle(.white)
         .frame(width: 22, height: 22)
-        .padding(.leading, 16)
+        .frame(width: 44, height: 44)
+        .contentShape(Rectangle())
     }
     .accessibilityIdentifier(id)
   }
@@ -302,7 +306,7 @@ struct CameraView: View {
   // MARK: - Bottom bar
 
   private var bottomBar: some View {
-    VStack(spacing: 14) {
+    VStack(spacing: FlareSpace.md) {
       if isUpdateRequired {
         updateControls
       } else {
@@ -313,12 +317,12 @@ struct CameraView: View {
       }
     }
     .frame(maxWidth: .infinity)
-    .padding(.horizontal, 24)
-    .padding(.top, 48)
-    .padding(.bottom, 28)
+    .padding(.horizontal, FlareSpace.md)
+    .padding(.top, FlareSpace.xl + FlareSpace.md)
+    .padding(.bottom, FlareSpace.lg)
     .background(
       LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
-        .edgesIgnoringSafeArea(.bottom)
+        .ignoresSafeArea(edges: .bottom)
     )
   }
 
@@ -327,7 +331,7 @@ struct CameraView: View {
   /// the gateway and is the lone enabled control in session-ready, the rest enabling
   /// once streaming.
   private var captureRow: some View {
-    HStack(spacing: 10) {
+    HStack(spacing: FlareSpace.xs) {
       previewPill
       photoButton
       recordPill
@@ -601,20 +605,20 @@ struct UpdateRequiredMessage: View {
 
       VStack(alignment: .leading, spacing: 4) {
         Text(updateRequiredTitle)
-          .font(.system(size: 16, weight: .semibold))
+          .font(.headline)
           .foregroundStyle(Color.updateRequiredForeground)
 
         Text(message)
-          .font(.system(size: 15))
+          .font(.subheadline)
           .foregroundStyle(Color.updateRequiredForeground)
           .fixedSize(horizontal: false, vertical: true)
       }
 
       Spacer(minLength: 0)
     }
-    .padding(.all, 16)
+    .padding(.all, FlareSpace.md)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(Color.updateRequiredBackground)
-    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    .clipShape(RoundedRectangle(cornerRadius: FlareRadius.card, style: .continuous))
   }
 }

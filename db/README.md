@@ -15,8 +15,8 @@ What lives where (`db/schema.sql`):
 |---|---|---|
 | `telemetry` (hypertable, 1-day chunks), `telemetry_1h` (continuous aggregate) | `scripts/db/ingest.ts` | synthetic SCADA telemetry per dataset; `/api/trends` serves long ranges |
 | `datasets` | ingest | network.json / ops.json / time range per folder |
-| `incidents` | P4 (memory, visual reports, verdicts, resolutions) | shared incident memory across machines |
-| `messages`, `tickets` | P3 (Discord / Photon / GitHub issues) | what was sent, replies, ticket state |
+| `incidents` | P4 (memory, visual reports, verdicts, resolutions) + `dispatch` jsonb (On-call thread snapshot) | shared incident memory; `/api/dispatch/state` hydrates from `dispatch` after a restart |
+| `messages`, `tickets` | P3 (Photon / GitHub issues) | what was sent, replies, ticket state |
 | `outcomes`, `calibration` | P1 (nightly retrain) | outcome history and calibration versions |
 
 Rule: the browser `analyse()` on the loaded folder remains the source of truth for detection and plans

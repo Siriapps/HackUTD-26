@@ -229,15 +229,27 @@ final class GeminiLiveClient: NSObject, Sendable, URLSessionWebSocketDelegate {
       out.append(
         .toolCalls(
           calls.map { c in
-            let args = (c["args"] as? [String: Any] ?? [:]).compactMapValues { v -> String? in
-              if let s = v as? String { return s }
-              return (v as? CustomStringConvertible)?.description
-            }
+            let args = (c["args"] as? [String: Any] ?? [:]).compactMapValues { argString($0) }
             return ToolCall(id: c["id"] as? String, name: c["name"] as? String ?? "", args: args)
           }))
     }
     if let goAway = msg["goAway"] as? [String: Any] { out.append(.goAway(goAway["timeLeft"] as? String)) }
     return out
+  }
+
+  /// Tool args as strings without losing meaning: JSON booleans become "true"/"false" (an NSNumber's
+  /// description would be "1"/"0"), numbers keep their digits, arrays/objects become JSON text.
+  static func argString(_ v: Any) -> String? {
+    if let s = v as? String { return s }
+    if v is NSNull { return nil }
+    if let n = v as? NSNumber {
+      if CFGetTypeID(n) == CFBooleanGetTypeID() { return n.boolValue ? "true" : "false" }
+      return n.stringValue
+    }
+    if JSONSerialization.isValidJSONObject(v), let d = try? JSONSerialization.data(withJSONObject: v), let s = String(data: d, encoding: .utf8) {
+      return s
+    }
+    return nil
   }
 
   // MARK: - URLSessionWebSocketDelegate

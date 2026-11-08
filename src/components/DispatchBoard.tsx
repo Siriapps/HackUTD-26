@@ -27,7 +27,7 @@ interface Thread {
   log: { at: number; dir: "in" | "out"; text: string; by?: string; intent?: string }[];
 }
 
-const POLL_MS = 3000;
+const POLL_MS = 1500; // glasses transcripts land here; keep it near real time
 const STATUS: Record<Thread["status"], { label: string; fg: string; bg: string }> = {
   awaiting: { label: "Waiting on tech", fg: "var(--warn)", bg: "var(--warn-soft)" },
   approved: { label: "Approved", fg: "var(--ok)", bg: "var(--ok-soft)" },
@@ -88,11 +88,9 @@ export function DispatchBoard() {
         </header>
         {threads && !threads.length && (
           <p className="px-4 py-6 text-sm text-ink-2">
-            Nothing dispatched yet. Press <span className="text-ink-1">Dispatch</span> on an alert in the{" "}
-            <Link href="/" className="underline">
-              dashboard
-            </Link>{" "}
-            to text the on-call tech.
+            Nothing dispatched yet. Press Play on the board (auto-text on) or tap{" "}
+            <span className="text-ink-1">Text on-call</span> on an alert. Threads survive a restart when Tiger Data is
+            configured.
           </p>
         )}
         <ul className="divide-y divide-line-1">
@@ -152,8 +150,10 @@ function ThreadRow({ t, event, onChanged }: { t: Thread; event?: Event; onChange
     onChanged();
   }
 
+  // Threads opened from the glasses for an event no dataset knows have no plan to approve; the live page is their view.
+  const glassesOnly = t.handle === "glasses" && !event && !t.choice;
   const actions: [string, string][] =
-    t.status === "resolved"
+    t.status === "resolved" || glassesOnly
       ? []
       : [
           ["approve", "Approve plan"],
@@ -165,7 +165,13 @@ function ThreadRow({ t, event, onChanged }: { t: Thread; event?: Event; onChange
   return (
     <li className="px-4 py-3">
       <div className="flex items-center gap-2 flex-wrap min-w-0">
-        <span className="num font-semibold text-ink-1">{t.eventId}</span>
+        <Link
+          href={`/dispatch/${t.eventId}?folder=${encodeURIComponent(t.folder)}`}
+          className="num font-semibold text-ink-1 hover:underline"
+          title="Open live incident view"
+        >
+          {t.eventId}
+        </Link>
         {event && (
           <>
             <Link href={`/facility/${event.facility}`} className="num text-ink-2 hover:underline truncate">
@@ -224,10 +230,10 @@ function ThreadRow({ t, event, onChanged }: { t: Thread; event?: Event; onChange
       )}
 
       <ol className="mt-2 space-y-0.5 text-xs">
-        {t.log.slice(-6).map((l, i) => (
-          <li key={i} className="grid grid-cols-[42px_64px_minmax(0,1fr)] gap-2 items-baseline">
+        {t.log.slice(-12).map((l, i) => (
+          <li key={i} className="grid grid-cols-[42px_96px_minmax(0,1fr)] gap-2 items-baseline">
             <span className="num text-ink-3">{clock(l.at)}</span>
-            <span className={l.dir === "in" ? "text-ink-1" : "text-ink-3"}>{l.dir === "in" ? (l.by ?? "reply") : "sent"}</span>
+            <span className={`truncate ${l.dir === "in" ? "text-ink-1" : "text-ink-3"}`}>{l.dir === "in" ? (l.by ?? "reply") : (l.by ?? "sent")}</span>
             <span className={`truncate ${l.dir === "in" ? "text-ink-1" : "text-ink-2"}`} title={l.text}>
               {l.text.split("\n")[0] || "—"}
             </span>

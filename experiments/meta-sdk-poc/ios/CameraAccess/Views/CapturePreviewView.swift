@@ -36,36 +36,29 @@ struct CapturePreviewView: View {
 
   var body: some View {
     ZStack {
-      Color.black.opacity(0.9)
+      Color.black.opacity(0.92)
         .ignoresSafeArea()
         .onTapGesture { dismiss() }
 
-      VStack(spacing: 24) {
-        mediaView
-          .frame(maxWidth: .infinity)
-          .frame(height: 460)
-          .clipShape(RoundedRectangle(cornerRadius: 12))
-          .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
-
-        CircleButton(icon: "square.and.arrow.up", text: "Share") {
-          showShareSheet = true
-        }
-        .accessibilityIdentifier("share_button")
-      }
-      .padding()
-
-      VStack {
+      VStack(spacing: FlareSpace.md) {
         HStack {
           Spacer()
           CircleButton(icon: "xmark", text: nil) {
             dismiss()
           }
           .accessibilityIdentifier("close_preview_button")
-          .padding(.trailing, 20)
-          .padding(.top, 50)
         }
-        Spacer()
+
+        mediaView
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+        CircleButton(icon: "square.and.arrow.up", text: "Share") {
+          showShareSheet = true
+        }
+        .accessibilityIdentifier("share_button")
       }
+      .padding(.horizontal, FlareSpace.md)
+      .padding(.vertical, FlareSpace.xs)
     }
     .onAppear { player?.play() }
     .sheet(isPresented: $showShareSheet) {
@@ -73,6 +66,8 @@ struct CapturePreviewView: View {
     }
   }
 
+  /// Fitted to the space between the close and share controls at the media's own aspect ratio;
+  /// the player letterboxes video itself.
   @ViewBuilder
   private var mediaView: some View {
     switch preview {
@@ -80,9 +75,11 @@ struct CapturePreviewView: View {
       Image(uiImage: image)
         .resizable()
         .aspectRatio(contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: FlareRadius.card, style: .continuous))
     case .video:
       if let player {
         VideoPlayer(player: player)
+          .clipShape(RoundedRectangle(cornerRadius: FlareRadius.card, style: .continuous))
       }
     }
   }
