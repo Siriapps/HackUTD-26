@@ -52,3 +52,6 @@ next-env.d.ts
 
 # external training CSVs stay local (Kaggle data, too big for git); README + mapping.json are tracked
 /data/external/*.csv
+
+# real on-call roster (phone numbers)
+/config/ops-roster.json

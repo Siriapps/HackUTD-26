@@ -1,0 +1,13 @@
+{
+  "_comment": "Copy to config/ops-roster.json (gitignored) with real numbers. Handles are E.164 phones or emails reachable on the channel.",
+  "on_call": [
+    { "name": "Night tech", "role": "technician", "channel": "imessage", "handle": "+15555550100", "systems": ["*"] }
+  ],
+  "supervisor": [
+    { "name": "Shift supervisor", "role": "supervisor", "channel": "imessage", "handle": "+15555550101", "email": "supervisor@example.com" }
+  ],
+  "morning_crew": [
+    { "name": "Day lead", "role": "day_lead", "channel": "email", "handle": "daylead@example.com" }
+  ],
+  "quiet_hours": null
+}
