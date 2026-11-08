@@ -1,7 +1,7 @@
 // Turns an inbound reply into a decision on an open alert and the text we send back.
 // Pure apart from the injected deps, so every edge case is unit-tested without Photon or a dataset.
 import type { Event, PlanOption } from "@/lib/data/types";
-import { money, utc } from "@/lib/format";
+import { money } from "@/lib/format";
 import { cheapestOf, composeOptions, composeStatus, countdownLine } from "./alert";
 import { parseReply, type Reply } from "./replies";
 import { openInSpace, update, type Choice, type OpenAlert } from "./store";
@@ -137,7 +137,7 @@ export async function handleInbound(msg: InboundMsg, deps: EngineDeps): Promise<
       case "resolved": {
         const stillDown = event.status === "ongoing" && event.category === "pump_failure";
         const caveat = stillDown ? " Sensors still show the pump down; we'll confirm when flow returns." : "";
-        done("resolved", undefined, `👍 ${a.eventId} marked fixed at ${utc(fresh.now)}. Add a note or photo here for the morning crew.${caveat}`);
+        done("resolved", undefined, `👍 ${a.eventId} marked fixed at ${new Date(now).toISOString().slice(11, 16)} UTC. Add a note or photo here for the morning crew.${caveat}`);
         break;
       }
 

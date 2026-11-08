@@ -92,6 +92,11 @@ export class PhotonClient {
     );
   }
 
+  /** Typing bubble in the conversation: instant feedback while the reply is composed. Best effort. */
+  async typing(spaceId: string, senderId: string, on = true) {
+    await this.req("POST", "/messages", { spaceId, senderId, content: { type: "space.typing.update", typing: on } }, `typing:${spaceId}:${on}:${Date.now()}`).catch(() => undefined);
+  }
+
   /** The project's agent (our line) on a platform: PHOTON_SENDER_ID, else the first agent user. */
   async resolveSender(platform: PhotonPlatform = "imessage"): Promise<string> {
     if (this.cfg.senderId) return this.cfg.senderId;
@@ -143,7 +148,13 @@ export interface PhotonMessage {
   status?: string;
 }
 
+const g = globalThis as unknown as { __photonClient?: { sig: string; client: PhotonClient } };
+
+/** Shared client per config, so the resolved sender line is cached across requests. */
 export function photonClient(): PhotonClient | null {
   const cfg = photonConfig();
-  return cfg ? new PhotonClient(cfg) : null;
+  if (!cfg) return null;
+  const sig = `${cfg.projectId}|${cfg.apiKey}|${cfg.senderId ?? ""}`;
+  if (g.__photonClient?.sig !== sig) g.__photonClient = { sig, client: new PhotonClient(cfg) };
+  return g.__photonClient.client;
 }
