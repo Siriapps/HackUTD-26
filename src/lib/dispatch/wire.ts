@@ -1,16 +1,41 @@
-// Connects Photon inbound texts to the dispatch engine and sends the reply back on the same line.
-import { photonClient } from "@/lib/photon/client";
+// Connects Photon inbound texts to the dispatch engine, cross-posts decisions to everyone on the alert,
+// and runs the escalation ticker. Re-wires cleanly on HMR (old listener/timer torn down).
+import { photonClient, type PhotonClient } from "@/lib/photon/client";
 import { onEvent } from "@/lib/photon/inbox";
 import { handleInbound } from "./engine";
+import { loadRoster } from "./roster";
 import { serverEvent } from "./server-data";
-import { update } from "./store";
+import { getAlert, otherSpaces, update } from "./store";
+import { crossPost, tick } from "./ticker";
 
-const g = globalThis as unknown as { __dispatchWired?: boolean };
+const TICK_MS = 15_000;
+
+const g = globalThis as unknown as { __dispatchWire?: { unsub: () => void; timer: ReturnType<typeof setInterval> } };
+let wiredHere = false;
+
+const timeScale = () => Math.max(1, Number(process.env.DISPATCH_TIME_SCALE) || 1);
+
+async function runTick(client: PhotonClient) {
+  const sender = await client.resolveSender("imessage");
+  return tick({
+    getEvent: serverEvent,
+    roster: loadRoster,
+    openSpace: async (handle) => (await client.directSpace("imessage", handle)).space.id,
+    send: async (spaceId, text, key) => void (await client.sendText(spaceId, text, key, sender)),
+    nowMs: Date.now(),
+    timeScale: timeScale(),
+  });
+}
 
 export function wireDispatch() {
-  if (g.__dispatchWired) return;
-  g.__dispatchWired = true;
-  onEvent(async (e) => {
+  if (wiredHere) return;
+  wiredHere = true;
+  if (g.__dispatchWire) {
+    g.__dispatchWire.unsub();
+    clearInterval(g.__dispatchWire.timer);
+  }
+
+  const unsub = onEvent(async (e) => {
     if (e.kind !== "inbound_text") return;
     const client = photonClient();
     const sender = client ? await client.resolveSender(e.platform as never) : null;
@@ -19,6 +44,24 @@ export function wireDispatch() {
     const result = await handleInbound({ spaceId: e.spaceId, text: e.text }, { getEvent: serverEvent });
     if (!client || !sender || !result.reply) return;
     await client.sendText(e.spaceId, result.reply, `reply:${e.messageId}`, sender);
-    for (const a of result.changed) update(a.key, {}, { at: Date.now(), dir: "out", text: result.reply });
+
+    for (const changed of result.changed) {
+      const a = getAlert(changed.key) ?? changed;
+      update(a.key, {}, { at: Date.now(), dir: "out", text: result.reply });
+      // Everyone else on the alert (tech ↔ supervisor) sees who decided what.
+      const who = a.spaceId === e.spaceId ? "On-call tech" : ((a.watchers ?? []).find((w) => w.spaceId === e.spaceId)?.name ?? "Supervisor");
+      for (const other of otherSpaces(a, e.spaceId)) {
+        await client.sendText(other, crossPost(a, who, result.reply), `xpost:${e.messageId}:${other}`, sender).catch(() => undefined);
+      }
+    }
+    // HELP pages the supervisor now rather than on the next tick.
+    if (result.changed.some((c) => c.status === "escalated")) await runTick(client).catch((err) => console.error("[dispatch] escalation", err));
   });
+
+  const timer = setInterval(() => {
+    const client = photonClient();
+    if (client) runTick(client).catch((err) => console.error("[dispatch] tick", err));
+  }, TICK_MS);
+  timer.unref?.();
+  g.__dispatchWire = { unsub, timer };
 }

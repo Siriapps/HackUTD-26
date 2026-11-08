@@ -31,6 +31,10 @@ export async function loadRoster(): Promise<Roster> {
         r.on_call = [{ name: "On call", role: "technician", channel: "imessage", handle: override, systems: ["*"] }];
         r.source = "env";
       }
+      const sup = process.env.DISPATCH_SUPERVISOR_HANDLE?.trim();
+      if (sup) r.supervisor = [{ name: "Supervisor", role: "supervisor", channel: "imessage", handle: sup }];
+      // Placeholder numbers are never paged.
+      if (r.source === "example" && !sup) r.supervisor = [];
       return r;
     } catch {
       /* try next */
