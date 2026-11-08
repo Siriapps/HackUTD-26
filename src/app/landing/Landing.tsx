@@ -280,7 +280,7 @@ function Reach({ rm }: { rm: boolean }) {
                 Tank 60.4 % → shutdown in 3 h 15 min at 12:15 UTC.
               </p>
               <p>
-                PLAN: 1 truck, 1 trip: $905
+                PLAN (cheapest option): 1 truck, 1 trip: $905
                 <br />
                 ALT: Shut in S4_WELL_C1 at +150 min: $1,547
                 <br />
