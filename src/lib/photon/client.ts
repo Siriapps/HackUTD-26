@@ -32,6 +32,9 @@ export function photonConfig(env: Record<string, string | undefined> = process.e
 
 type FetchLike = typeof fetch;
 
+/** Photon idempotency keys: 1-255 printable ASCII, no spaces. */
+export const safeKey = (k: string) => k.replace(/[^\x21-\x7e]/g, "_").slice(0, 255) || "_";
+
 export class PhotonClient {
   constructor(
     private readonly cfg: PhotonConfig,
@@ -45,7 +48,7 @@ export class PhotonClient {
   private async req<T>(method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
     const headers: Record<string, string> = { Authorization: `Bearer ${this.cfg.apiKey}` };
     if (body !== undefined) headers["Content-Type"] = "application/json";
-    if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+    if (idempotencyKey) headers["Idempotency-Key"] = safeKey(idempotencyKey);
     const res = await this.fetchImpl(`${BASE}/projects/${this.cfg.projectId}${path}`, {
       method,
       headers,
@@ -55,7 +58,7 @@ export class PhotonClient {
     const json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
     if (!res.ok) {
       throw new PhotonError(
-        `Photon ${method} ${path} → ${res.status} ${String(json.code ?? json.title ?? "")}`.trim(),
+        `Photon ${method} ${path} → ${res.status} ${String(json.code ?? json.title ?? "")}${json.detail ? `: ${String(json.detail)}` : ""}`.trim(),
         res.status,
         typeof json.code === "string" ? json.code : undefined,
       );
@@ -87,6 +90,11 @@ export class PhotonClient {
       { spaceId, senderId, content: { type: "text", format: "plain", text } },
       idempotencyKey,
     );
+  }
+
+  /** Typing bubble in the conversation: instant feedback while the reply is composed. Best effort. */
+  async typing(spaceId: string, senderId: string, on = true) {
+    await this.req("POST", "/messages", { spaceId, senderId, content: { type: "space.typing.update", typing: on } }, `typing:${spaceId}:${on}:${Date.now()}`).catch(() => undefined);
   }
 
   /** The project's agent (our line) on a platform: PHOTON_SENDER_ID, else the first agent user. */
@@ -140,7 +148,13 @@ export interface PhotonMessage {
   status?: string;
 }
 
+const g = globalThis as unknown as { __photonClient?: { sig: string; client: PhotonClient } };
+
+/** Shared client per config, so the resolved sender line is cached across requests. */
 export function photonClient(): PhotonClient | null {
   const cfg = photonConfig();
-  return cfg ? new PhotonClient(cfg) : null;
+  if (!cfg) return null;
+  const sig = `${cfg.projectId}|${cfg.apiKey}|${cfg.senderId ?? ""}`;
+  if (g.__photonClient?.sig !== sig) g.__photonClient = { sig, client: new PhotonClient(cfg) };
+  return g.__photonClient.client;
 }
