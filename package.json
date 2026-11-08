@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "photon:webhook": "node scripts/photon-webhook.mjs"
   },
   "dependencies": {
     "@google/genai": "^3.0.0",
