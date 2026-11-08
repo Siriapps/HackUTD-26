@@ -1,17 +1,6 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { datasetFromStrings, seriesKey } from "./load";
-
-export function loadFixture(folder: string) {
-  const dir = path.join(process.cwd(), "public", "data", folder);
-  return datasetFromStrings(
-    folder,
-    JSON.parse(readFileSync(path.join(dir, "network.json"), "utf8")),
-    JSON.parse(readFileSync(path.join(dir, "ops.json"), "utf8")),
-    readFileSync(path.join(dir, "telemetry.csv"), "utf8"),
-  );
-}
+import { loadFixture } from "./fixtures";
+import { seriesKey } from "./load";
 
 describe("parseTelemetry", () => {
   it("builds aligned series for full_week", () => {
