@@ -10,7 +10,7 @@ import { fmtClock, fmtMoney, fmtPct } from "./format";
  * Projected tank level under every option the optimiser considered. The recommended plan is the bright line;
  * feasible alternatives are grey, options that still trip are red. Hover a row to lift its curve.
  */
-export function PlanCompare({ event, dataset, compact = false }: { event: Event; dataset: Dataset; compact?: boolean }) {
+export function PlanCompare({ event, dataset, compact = false, onChoose, chosen }: { event: Event; dataset: Dataset; compact?: boolean; onChoose?: (index: number, option: PlanOption) => void; chosen?: number | null }) {
   const plan = event.plan!;
   const [hover, setHover] = useState<string | null>(null);
   const options = useMemo(() => [plan.recommended, ...plan.alternatives], [plan]);
@@ -149,7 +149,14 @@ export function PlanCompare({ event, dataset, compact = false }: { event: Event;
                 </span>
               </span>
             </span>
-            <span className={`num ${i === 0 ? "font-semibold" : ""}`}>{fmtMoney(o.cost)}</span>
+            <span className="flex flex-col items-end gap-1">
+              <span className={`num ${i === 0 ? "font-semibold" : ""}`}>{fmtMoney(o.cost)}</span>
+              {onChoose && (
+                <button type="button" className={`btn h-6 text-xs ${chosen === i ? "btn-primary" : "btn-quiet"}`} onClick={() => onChoose(i, o)} aria-label={`Choose: ${o.label}`}>
+                  {chosen === i ? "Chosen" : i === 0 ? "Use recommended" : "Use this"}
+                </button>
+              )}
+            </span>
           </li>
         ))}
       </ol>

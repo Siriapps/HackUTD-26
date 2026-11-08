@@ -34,6 +34,7 @@ export function AlertView({ id }: { id: string }) {
   const analysis = useOps((s) => s.analysis);
   const [thread, setThread] = useState<Thread | null>(null);
   const [ticket, setTicket] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<number | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [armed, setArmed] = useState(false);
 
@@ -85,6 +86,26 @@ export function AlertView({ id }: { id: string }) {
     const r = await fetch("/api/dispatch/alert", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventId: id, folder: dataset!.folder, asOf: now }) });
     const j = (await r.json().catch(() => ({}))) as { ok?: boolean; error?: string; reason?: string; to?: string; message?: string };
     setNote(j.ok === false || !r.ok ? `Not sent: ${j.error ?? j.reason ?? r.status}` : `Texted ${j.to ?? "on-call"} ${j.reason ? `(${j.reason})` : ""}`);
+  }
+  /** Operator picks an option: do nothing, shut some, send trucks, or a mix. Texts the alert first if needed, then decides on the thread. */
+  async function choose(i: number, label: string) {
+    setNote(`Choosing: ${label}…`);
+    let key = thread?.key;
+    if (!key) {
+      const r = await fetch("/api/dispatch/alert", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventId: id, folder: dataset!.folder, asOf: now }) });
+      const j = (await r.json().catch(() => ({}))) as { ok?: boolean; key?: string; alert?: { key?: string }; reason?: string; error?: string };
+      key = j.key ?? j.alert?.key;
+      if (!key) {
+        setNote(`Could not open the thread: ${j.error ?? j.reason ?? r.status}`);
+        return;
+      }
+    }
+    const command = i === 0 ? "approve" : `opt ${i + 1}`;
+    const r = await fetch("/api/dispatch/decide", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, command, by: "ops console" }) });
+    const j = (await r.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+    setNote(j.message?.split("
+")[0] ?? (j.ok ? "Chosen" : "Could not decide"));
+    if (j.ok) setChosen(i);
   }
   async function raiseTicket() {
     setNote("Raising ticket…");
@@ -259,7 +280,7 @@ export function AlertView({ id }: { id: string }) {
             <span className="panel-sub">minute-by-minute tank simulation</span>
           </header>
           <div className="px-4 py-3">
-            <PlanCompare event={event} dataset={dataset} />
+            <PlanCompare event={event} dataset={dataset} onChoose={(i, o) => void choose(i, o.label)} chosen={chosen} />
           </div>
         </section>
       )}
