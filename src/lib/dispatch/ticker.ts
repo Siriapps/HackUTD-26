@@ -11,6 +11,8 @@ export interface TickDeps {
   /** Open (or reuse) a direct conversation with a handle; returns its space id. */
   openSpace(handle: string): Promise<string>;
   send(spaceId: string, text: string, key: string): Promise<void>;
+  /** Ring a handle with the AI engineer (voice); resolves false when voice isn't configured. */
+  call?(handle: string): Promise<boolean>;
   nowMs: number;
   /** >1 compresses escalation timing for demos (DISPATCH_TIME_SCALE). */
   timeScale?: number;
@@ -49,7 +51,11 @@ export async function tick(deps: TickDeps): Promise<TickAction[]> {
     };
 
     const techThread = a.spaceId !== "field-app";
-    if (step.kind === "reminder" && techThread) await deliver(a.spaceId, "tech");
+    if (step.kind === "reminder" && techThread) {
+      await deliver(a.spaceId, "tech");
+      // Unanswered text → the phone rings too; a call is harder to sleep through.
+      if (deps.call && (await deps.call(a.handle).catch(() => false))) sentTo.push("tech (call)");
+    }
     if (step.kind === "supervisor") {
       const sups = (await deps.roster()).supervisor.filter((p) => !isPlaceholder(p.handle));
       for (const p of sups) {
