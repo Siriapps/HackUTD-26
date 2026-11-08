@@ -55,3 +55,6 @@ next-env.d.ts
 
 # real on-call roster (phone numbers)
 /config/ops-roster.json
+
+# action-item GitHub issue ledger (runtime)
+/data/github-issues.json
