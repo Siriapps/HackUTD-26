@@ -37,6 +37,8 @@ export interface TankSimResult {
  * `shutdownPct` the crossing time is interpolated, the level clamps there and inflow stops
  * (automatic shut-in). A trip arriving at or after the horizon end is ignored.
  */
+const EPS = 1e-6; // a peak that lands on the limit to within float error has tripped
+
 export function simulateTank(inp: TankSimInput): TankSimResult {
   const M = Math.max(0, Math.round((inp.horizonEndUnix - inp.startUnix) / 60));
   const pctPerMin = (bpd: number) => (bpd / 24 / 60 / inp.capacityBbl) * 100;
@@ -66,7 +68,7 @@ export function simulateTank(inp: TankSimInput): TankSimResult {
     if (tripsAtUnix === null) {
       const rate = m >= afterMin ? rateShut : rateAll;
       const next = level + rate;
-      if (next >= inp.shutdownPct && rate > 0) {
+      if (next >= inp.shutdownPct - EPS && rate > 0) {
         const f = (inp.shutdownPct - level) / rate;
         tripsAtUnix = inp.startUnix + (m + f) * 60;
         level = inp.shutdownPct;
@@ -80,5 +82,5 @@ export function simulateTank(inp: TankSimInput): TankSimResult {
     if ((m + 1) % 5 === 0 || m + 1 === M) push(m + 1);
   }
   if (M === 0) curve.push({ t_unix: inp.horizonEndUnix, level_pct: level });
-  return { curve, peak, tripsAtUnix, feasible: tripsAtUnix === null && peak < inp.shutdownPct, minutes: M };
+  return { curve, peak, tripsAtUnix, feasible: tripsAtUnix === null && peak < inp.shutdownPct - EPS, minutes: M };
 }
