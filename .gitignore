@@ -49,3 +49,6 @@ next-env.d.ts
 
 # agent worktrees
 /.claude/worktrees/
+
+# external training CSVs stay local (Kaggle data, too big for git); README + mapping.json are tracked
+/data/external/*.csv
