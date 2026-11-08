@@ -1,5 +1,5 @@
 import { analyse } from "@/lib/analyse";
-import { loadDataset } from "@/lib/data/load";
+import { listDatasets, loadDataset } from "@/lib/data/load";
 import { seriesKey, type Analysis, type Dataset, type Event, type Facility, type Network, type Ops, type System } from "@/lib/data/types";
 import { FIXTURES } from "@/lib/memory/fixture";
 
@@ -82,11 +82,16 @@ export function loadAnalysis(folder: string) {
   return p;
 }
 
-/** One event with its surroundings. Fixture ids (FIX-*) resolve without a dataset so the field view works before W1 lands. */
-export async function getEvent(eventId: string, folder: string): Promise<EventContext | null> {
+/**
+ * One event with its surroundings. Fixture ids (FIX-*) resolve without a dataset so the field view works
+ * before W1 lands; without a folder the first dataset listed by /api/datasets is used.
+ */
+export async function getEvent(eventId: string, folder?: string): Promise<EventContext | null> {
   const fixture = FIXTURES[eventId];
   if (fixture) return fixture;
-  const { dataset, analysis } = await loadAnalysis(folder);
+  const f = folder || (await listDatasets())[0]?.folder;
+  if (!f) return null;
+  const { dataset, analysis } = await loadAnalysis(f);
   const event = findEvent(analysis, eventId);
   return event ? eventContext(dataset, analysis, event) : null;
 }

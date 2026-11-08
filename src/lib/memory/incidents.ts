@@ -130,7 +130,38 @@ export function recordFeedback(category: Category, kind: Feedback): FeedbackCoun
   return counts;
 }
 
-export function incidentFromEvent(e: Event, resolution?: string): Incident {
+// ─── Visual reports (PLAN item 18) ───────────────────────────────────────────
+export type Severity = "low" | "medium" | "high" | "critical";
+export interface VisualReport {
+  id: string;
+  eventId: string;
+  at: number;
+  observed_condition: string;
+  severity: Severity;
+  components_visible: string[];
+  matches_telemetry: boolean;
+  notes: string;
+  /** JPEG data URLs of the keyframes behind the report (at most 4). */
+  photos: string[];
+  model?: string;
+}
+
+const VISUAL_KEY = "avon.memory.visual";
+
+export function visualReports(eventId?: string): VisualReport[] {
+  const all = read<VisualReport[]>(VISUAL_KEY, []);
+  return eventId ? all.filter((r) => r.eventId === eventId) : all;
+}
+
+/** Keeps the newest two reports per event and at most twelve overall so photos stay inside the localStorage quota. */
+export function addVisualReport(r: Omit<VisualReport, "id">): VisualReport {
+  const report: VisualReport = { ...r, id: `${r.eventId}-${r.at}`, photos: r.photos.slice(-4) };
+  const others = visualReports().filter((x) => x.eventId !== r.eventId).slice(-10);
+  write(VISUAL_KEY, [...others, ...visualReports(r.eventId).slice(-1), report]);
+  return report;
+}
+
+export function incidentFromEvent(e: Event, resolution?: string, visual?: VisualReport): Incident {
   const plan = e.plan?.recommended;
   const hours = e.end_unix ? (e.end_unix - e.onset_unix) / 3600 : null;
   const planText = plan
@@ -146,7 +177,10 @@ export function incidentFromEvent(e: Event, resolution?: string): Incident {
     hours_to_limit: e.hours_to_limit?.p50,
     onset_unix: e.onset_unix,
     summary: `${CATEGORY_LABEL[e.category]} on ${e.asset}${e.evidence[0] ? `: ${e.evidence[0]}` : ""}`,
-    outcome: (resolution ?? planText) + (hours ? `; cleared after ${hours.toFixed(1)} h` : ""),
+    outcome:
+      (resolution ?? planText) +
+      (hours ? `; cleared after ${hours.toFixed(1)} h` : "") +
+      (visual ? `. Camera: ${visual.observed_condition} (${visual.severity})` : ""),
   };
 }
 
@@ -154,9 +188,11 @@ export function incidentFromEvent(e: Event, resolution?: string): Incident {
 export function corpus(analysis: Pick<Analysis, "events">): Incident[] {
   const resolutions = new Map<string, string>();
   for (const n of fieldNotes()) if (n.kind === "resolution") resolutions.set(n.eventId, n.text); // latest wins
+  const visuals = new Map<string, VisualReport>();
+  for (const r of visualReports()) visuals.set(r.eventId, r);
   const history = analysis.events
     .filter((e) => e.status === "resolved" || resolutions.has(e.id))
-    .map((e) => incidentFromEvent(e, resolutions.get(e.id)));
+    .map((e) => incidentFromEvent(e, resolutions.get(e.id), visuals.get(e.id)));
   return [...history, ...TEAM_NOTES.map((n) => ({ ...n, source: "note" as const }))];
 }
 
