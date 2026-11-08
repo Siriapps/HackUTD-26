@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./tokens.css";
+@import "./board.css";
 
 /* W2 layout chrome. Colour/type live in tokens.css (W4); do not redefine :root here. */
 

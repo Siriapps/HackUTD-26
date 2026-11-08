@@ -2,6 +2,7 @@
 
 import type { Analysis, Dataset, Event } from "@/lib/data/types";
 import { fmtClock, fmtHours } from "./format";
+import { TruckGlyph } from "./TruckGlyph";
 
 /**
  * The shutdown race: every filling tank as a bar from "now" toward its shutdown line, nearest
@@ -87,6 +88,7 @@ export function ShutdownRace({
                 onClick={() => onSelect(e.id)}
                 aria-label={`${e.facility}: ${htl != null ? `${fmtHours(htl)} to shutdown` : ""}`}
               >
+                {e.plan?.recommended.actions.some((a) => a.type === "dispatch_truck") && <TruckGlyph size={15} className="inline-block mr-1.5 align-[-1px] text-ink-2" />}
                 {htl != null && <strong style={{ color: htl < 1 ? "var(--shutdown)" : "var(--text-1)" }}>{fmtHours(htl)}</strong>}
                 <span className="text-ink-3"> · {e.plan ? (e.plan.recommended.feasible ? "holds" : `trips ${fmtClock(trips ?? now)}`) : ""}</span>
               </button>

@@ -7,6 +7,8 @@ import { Alerts } from "@/components/Alerts";
 import { CATEGORY } from "@/components/Category";
 import { FleetCard } from "@/components/FleetCard";
 import { HandoffCard } from "@/components/HandoffCard";
+import { DispatchLog } from "@/components/DispatchLog";
+import { PlanOfAction } from "@/components/PlanOfAction";
 import { MapPanel } from "@/components/MapPanel";
 import { PlanCompare } from "@/components/PlanCompare";
 import { ShutdownRace } from "@/components/ShutdownRace";
@@ -77,8 +79,8 @@ export default function DashboardPage() {
               </button>
             </div>
             {event && (
-              <Link href={`/facility/${event.facility}${q}`} className="btn ml-2">
-                Open facility
+              <Link href={`/alert/${event.id}${q}`} className="btn btn-primary ml-2">
+                Open alert
               </Link>
             )}
           </div>
@@ -113,7 +115,13 @@ export default function DashboardPage() {
                     </span>
                     <span className="text-ink-1">{describeActions(event.plan.recommended.actions)}</span>
                   </div>
-                  <PlanCompare event={event} dataset={dataset} compact />
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] max-[1600px]:grid-cols-1 gap-5">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-ink-3 mb-1.5">Plan of action</p>
+                      <PlanOfAction event={event} dataset={dataset} now={analysis.now} compact />
+                    </div>
+                    <PlanCompare event={event} dataset={dataset} compact />
+                  </div>
                 </>
               ) : (
                 <div className="text-sm text-ink-2">
@@ -139,6 +147,7 @@ export default function DashboardPage() {
 
       <aside className="board__side flex flex-col gap-3 min-h-0">
         <FleetCard />
+        <DispatchLog />
         <HandoffCard />
       </aside>
     </div>

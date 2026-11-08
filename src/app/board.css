@@ -1,0 +1,420 @@
+/* Board-era chrome: left rail, firing toasts, drop zone, plan of action, alert page. */
+
+/* ─── left rail (collapsible) ──────────────────────────────────────────── */
+.rail {
+  --rail-w: 212px;
+  width: var(--rail-w);
+  flex: 0 0 var(--rail-w);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line-1);
+  background: var(--surface-1);
+  transition: width var(--dur-slow) var(--ease-standard), flex-basis var(--dur-slow) var(--ease-standard);
+}
+.rail--closed {
+  --rail-w: 60px;
+}
+.rail__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 10px 8px 14px;
+}
+.rail--closed .rail__top {
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0 6px;
+}
+.rail__brand {
+  font-size: 1.1rem;
+  color: var(--text-1);
+  text-decoration: none;
+}
+.rail__toggle {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  color: var(--text-3);
+  border: 1px solid transparent;
+}
+.rail__toggle:hover {
+  color: var(--text-1);
+  background: var(--surface-2);
+  border-color: var(--line-1);
+}
+.rail ul {
+  list-style: none;
+  margin: 0;
+  padding: 4px 8px;
+  display: grid;
+  gap: 2px;
+}
+.rail__item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  color: var(--text-2);
+  text-decoration: none;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.rail--closed .rail__item {
+  grid-template-columns: 20px;
+  justify-content: center;
+  padding: 10px 0;
+}
+.rail--closed .rail__text {
+  display: none;
+}
+.rail__text {
+  display: grid;
+  line-height: 1.2;
+  min-width: 0;
+}
+.rail__label {
+  font-size: var(--fs-md);
+  font-weight: 500;
+  color: var(--text-1);
+}
+.rail__hint {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rail__item:hover {
+  background: var(--surface-2);
+}
+.rail__item.is-active {
+  background: var(--surface-3);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.rail__badge {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  font-weight: 600;
+}
+.rail--closed .rail__badge {
+  top: 4px;
+  right: 6px;
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
+  font-size: 10px;
+  padding: 0 4px;
+}
+.rail__foot {
+  margin-top: auto;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.rail--closed .rail__foot {
+  justify-content: center;
+  padding: 12px 0;
+}
+@media (max-width: 760px) {
+  .rail {
+    display: none;
+  }
+}
+
+/* ─── firing toasts ────────────────────────────────────────────────────── */
+.firing {
+  position: fixed;
+  right: 16px;
+  bottom: 3rem;
+  z-index: 60;
+  width: min(380px, calc(100vw - 32px));
+  display: grid;
+  gap: 8px;
+}
+.firing__card {
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+  border-left: 3px solid var(--cat-failure);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+  padding: 10px 12px 8px;
+  animation: firing-in var(--dur-slow) var(--ease-enter);
+}
+@keyframes firing-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+.firing__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.firing__steps {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.firing__steps li {
+  display: grid;
+  grid-template-columns: 12px 72px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+.firing__steps li[data-state="done"] {
+  color: var(--text-1);
+}
+.firing__steps li[data-state="active"] {
+  color: var(--text-2);
+}
+.firing__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line-2);
+  align-self: center;
+}
+.firing__steps li[data-state="done"] .firing__dot {
+  background: var(--ok);
+}
+.firing__steps li[data-state="active"] .firing__dot {
+  background: var(--accent);
+  animation: pulse var(--pulse-period) ease-in-out infinite;
+}
+.firing__steps li[data-state="off"] .firing__dot {
+  background: transparent;
+  border: 1px solid var(--line-2);
+}
+.firing__label {
+  font-weight: 600;
+}
+.firing__detail {
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.firing__dismiss {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--text-2);
+  border: 1px solid var(--line-2);
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ─── drop zone overlay ────────────────────────────────────────────────── */
+.dropzone {
+  position: fixed;
+  inset: 12px;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border: 2px dashed var(--accent);
+  border-radius: var(--r-lg);
+  background: rgb(11 11 13 / 0.86);
+  color: var(--text-1);
+}
+
+/* ─── plan of action ───────────────────────────────────────────────────── */
+.poa {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.poa__step {
+  display: grid;
+  grid-template-columns: 52px 22px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 5px 0;
+  font-size: var(--fs-md);
+  position: relative;
+}
+.poa__step + .poa__step::before {
+  content: "";
+  position: absolute;
+  left: 62px;
+  top: -8px;
+  height: 10px;
+  width: 1px;
+  background: var(--line-2);
+}
+.poa__time {
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  padding-top: 3px;
+}
+.poa__mark {
+  display: grid;
+  place-items: center;
+  height: 22px;
+  color: var(--text-2);
+}
+.poa__mark i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.poa__mark u {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-3);
+}
+.poa__mark b {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--ok);
+}
+.poa__step--arrive .poa__mark {
+  color: var(--accent);
+}
+.poa__body {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  cursor: default;
+}
+.poa__body input {
+  margin-top: 4px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.poa__who {
+  display: inline-block;
+  min-width: 34px;
+  margin-right: 6px;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+.poa__text {
+  color: var(--text-1);
+}
+.poa__step--watch .poa__text,
+.poa__step--end .poa__text {
+  color: var(--text-2);
+}
+.poa__detail {
+  display: block;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+.poa__step.is-done .poa__text {
+  color: var(--text-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--line-2);
+}
+.poa--compact .poa__step {
+  font-size: var(--fs-sm);
+  padding: 3px 0;
+}
+
+/* ─── alert page ───────────────────────────────────────────────────────── */
+.alert {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.9fr);
+  grid-template-areas:
+    "head head head"
+    "health plan twin"
+    "options options thread";
+  align-content: start;
+}
+.alert__head {
+  grid-area: head;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.alert__health {
+  grid-area: health;
+}
+.alert__plan {
+  grid-area: plan;
+}
+.alert__twin {
+  grid-area: twin;
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
+}
+.alert__thread {
+  grid-area: thread;
+}
+.alert__options {
+  grid-area: options;
+}
+.sms {
+  display: grid;
+  gap: 2px;
+  max-width: 92%;
+  padding: 8px 10px;
+  border-radius: 12px 12px 12px 4px;
+  background: var(--surface-2);
+}
+.sms--in {
+  justify-self: end;
+  background: var(--accent);
+  color: var(--text-inverse);
+  border-radius: 12px 12px 4px 12px;
+}
+@media (max-width: 1279px) {
+  .alert {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "head head"
+      "health plan"
+      "twin thread"
+      "options options";
+  }
+}
+@media (max-width: 760px) {
+  .alert {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "head"
+      "health"
+      "plan"
+      "twin"
+      "thread"
+      "options";
+  }
+}
