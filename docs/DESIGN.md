@@ -1,5 +1,5 @@
 ---
-name: Avon Night Shift
+name: Flare
 description: Night-shift operator console for a produced-water network; dark control room, glowing category colours, mono numerals.
 colors:
   surface-0: "#070b14"
@@ -26,19 +26,20 @@ colors:
   focus: "#9db4ff"
 typography:
   body:
-    fontFamily: "IBM Plex Sans, system-ui, sans-serif"
+    fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.5
   label:
-    fontFamily: "IBM Plex Sans, system-ui, sans-serif"
+    fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif"
     fontSize: "0.75rem"
     fontWeight: 500
     lineHeight: 1.35
   heading:
-    fontFamily: "IBM Plex Sans, system-ui, sans-serif"
+    fontFamily: "ZT Moven Bold Italic"
     fontSize: "1.25rem"
-    fontWeight: 600
+    fontWeight: 700
+    fontStyle: italic
     lineHeight: 1.3
     letterSpacing: "-0.01em"
   numeral:
@@ -91,10 +92,10 @@ components:
     padding: "2px 8px"
 ---
 
-# Avon Night Shift design system
+# Flare design system
 
 Tokens live in `src/app/tokens.css` (CSS variables + Tailwind v4 `@theme`). W4 owns colour and type; W2 owns layout.
-Add tokens freely; never rename one.
+Add tokens freely; never rename one. Product name in the UI: **Flare**. Headers use ZT Moven Bold Italic; body text uses Helvetica Neue.
 
 ## Overview
 

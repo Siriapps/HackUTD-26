@@ -1,11 +1,14 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { connection } from "next/server";
 
 const REQUIRED = ["network.json", "ops.json", "telemetry.csv"];
 
 /** Lists every folder under public/data that holds the three dataset files. */
 export async function GET() {
+  // Runs at request time so a test/ folder dropped in after build still shows up.
+  await connection();
   const root = path.join(process.cwd(), "public", "data");
   let entries: string[] = [];
   try {
@@ -22,4 +25,3 @@ export async function GET() {
   out.sort((a, b) => (a.folder === "test" ? -1 : b.folder === "test" ? 1 : a.folder.localeCompare(b.folder)));
   return NextResponse.json(out);
 }
-

@@ -137,6 +137,20 @@ export interface Event {
   /** Pump failures: the optimiser's output. Others: a single field_inspection action. */
   plan?: Plan;
   actions: Action[];
+  /** Learned early-warning scorer's probability for this event's category (ongoing drift events). */
+  ml_probability?: number;
+}
+
+/** A fault the learned scorer sees forming before the rule-based detector confirms it. */
+export interface EarlyWarning {
+  facility: string;
+  system: string;
+  asset: string;
+  category: Exclude<Category, "pump_failure">;
+  /** 0..1 */
+  probability: number;
+  as_of_unix: number;
+  note: string;
 }
 
 export interface DegradationForecast {
@@ -161,6 +175,8 @@ export interface Analysis {
   forecasts: DegradationForecast[];
   /** Per system: fleet size and trucks committed by the joint plan at `now`. */
   fleet: Record<string, { size: number; committed: number }>;
+  /** Learned early warnings (empty when the model is untrained). */
+  warnings?: EarlyWarning[];
 }
 
 export type AnalyseFn = (dataset: Dataset, nowOverride?: number) => Analysis;
