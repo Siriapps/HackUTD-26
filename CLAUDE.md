@@ -53,3 +53,16 @@ green = healthy, mono numerics, dense but calm. Desktop for ops, mobile-first fo
 - Branch per workstream `ws/w1-data-core` etc. Small PRs to `main`, CI green, squash-merge. Use the `gh` CLI.
 - Commit messages end with `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
 - Secrets only in `.env.local` (see `.env.example`).
+
+## GitHub is the channel between agents
+Several Claude sessions (one per teammate, plus orchestrator subagents) work in parallel. They never share a
+terminal; they share GitHub. Every agent, before touching code:
+1. `gh issue list --label <your-workstream>` — the task board. One issue per feature. Comment `claiming` on the one
+   you take; comment questions, blockers and decisions on the issue, not in chat. Label `blocked` if stuck and say on what.
+2. Branch `ws/<workstream>/<short-feature>` from fresh `main`. Keep PRs to one feature.
+3. PR body must have: summary, **How to test this feature** (commands + what to look for + which folder), screenshots
+   for UI, and `Closes #<issue>`. Label with the workstream.
+4. CI must be green. Ask for review by commenting `@<teammate>` or requesting a reviewer; address review comments as
+   commits, reply on the thread. **Humans merge** (squash). Agents never merge their own PRs.
+5. After merge: `git fetch && git rebase origin/main` on any open branch; read merged PR bodies to learn what changed.
+6. Contract changes (`src/lib/data/types.ts`, `analyse()` signature): own PR labelled `contract`, merged first.
