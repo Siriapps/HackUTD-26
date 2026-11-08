@@ -18,7 +18,10 @@ export interface InboundText {
   platform: string;
   senderId: string;
   senderHandle: string;
+  /** May be empty when the message is only a photo. */
   text: string;
+  /** Photon attachment ids (photos from the field). */
+  attachments: string[];
   at: string;
 }
 export interface DeliveryUpdate {
@@ -39,6 +42,13 @@ export type PhotonEvent = InboundText | DeliveryUpdate | OtherEvent;
 type Obj = Record<string, unknown>;
 const obj = (v: unknown): Obj => (v && typeof v === "object" ? (v as Obj) : {});
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
+
+/** Attachment ids in a message content, including inside iMessage "group" parts. */
+function contentAttachments(c: Obj): string[] {
+  if (c.type === "attachment" && typeof c.attachmentId === "string") return [c.attachmentId];
+  if (c.type === "group" && Array.isArray(c.parts)) return c.parts.flatMap((p) => contentAttachments(obj(p)));
+  return [];
+}
 
 /** Text of a message content, flattening iMessage "group" parts. */
 function contentText(c: Obj): string {
@@ -62,8 +72,9 @@ export function parseEvent(body: unknown): PhotonEvent {
 
   if (type === "message.received") {
     const text = contentText(obj(m.content)).trim();
+    const attachments = contentAttachments(obj(m.content));
     const sender = obj(m.sentBy);
-    if (text && spaceId) {
+    if ((text || attachments.length) && spaceId) {
       return {
         kind: "inbound_text",
         eventId,
@@ -73,6 +84,7 @@ export function parseEvent(body: unknown): PhotonEvent {
         senderId: str(sender.id),
         senderHandle: str(sender.handle),
         text,
+        attachments,
         at,
       };
     }

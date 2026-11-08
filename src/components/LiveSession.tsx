@@ -201,7 +201,7 @@ export default function LiveSession({ ctx, briefing, onMemoryChange }: Props) {
           addFieldNote(ctx.event.id, "escalation", args.reason ?? "");
           sysLine(`Escalating to ops: ${args.reason ?? ""}`);
           const r = await notifyOps({ event: ctx.event, folder: ctx.folder, kind: "escalation", note: args.reason });
-          response = { result: r.ok ? "ops notified on Discord" : `Discord unavailable (${r.reason}); logged locally` };
+          response = { result: r.ok ? `ops notified: ${r.reason ?? "supervisor paged"}` : `dispatch unavailable (${r.reason}); logged locally` };
           scheduling = FunctionResponseScheduling.INTERRUPT;
           break;
         }
@@ -384,7 +384,7 @@ export default function LiveSession({ ctx, briefing, onMemoryChange }: Props) {
     addFieldNote(ctx.event.id, "escalation", reason);
     onMemoryChange();
     const r = await notifyOps({ event: ctx.event, folder: ctx.folder, kind: "escalation", note: reason });
-    sysLine(r.ok ? "Escalated to ops on Discord." : `Escalation logged locally; Discord unavailable (${r.reason}).`);
+    sysLine(r.ok ? `Escalated to ops. ${r.reason ?? ""}`.trim() : `Escalation logged locally; dispatch unavailable (${r.reason}).`);
   }
 
   useEffect(() => {

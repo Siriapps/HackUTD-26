@@ -16,6 +16,17 @@ export interface LogEntry {
   dir: "out" | "in";
   text: string;
   intent?: Intent;
+  /** Who: "tech", "supervisor", "ops", "field app". */
+  by?: string;
+}
+
+/** What the field said happened, for the morning crew and incident memory. */
+export interface Resolution {
+  at: number;
+  by: string;
+  notes: string[];
+  /** Photon attachment ids. */
+  photos: string[];
 }
 
 export interface OpenAlert {
@@ -28,6 +39,15 @@ export interface OpenAlert {
   status: AlertStatus;
   choice?: Choice;
   decidedAt?: number;
+  /** Who made the current decision. */
+  decidedBy?: string;
+  /** Dataset time the alert was computed at (operator time travel); undefined = end of data. */
+  asOf?: number;
+  /** Someone acknowledged (OMW / arrived / copy) without deciding. */
+  ackAt?: number;
+  resolution?: Resolution;
+  /** After FIXED, the next free text or photo in this thread is saved as a note until this time. */
+  noteUntil?: number;
   /** 0 = tech only; each escalation step adds one (reminder, supervisor, all hands). */
   escalation: number;
   /** People pulled in by escalation; their replies act on this alert too. */
@@ -53,7 +73,7 @@ export function upsertAlert(
   const key = alertKey(a.folder, a.eventId);
   const prev = alerts.get(key);
   const next: OpenAlert = prev
-    ? { ...prev, spaceId: a.spaceId, handle: a.handle, sentAt: a.sentAt }
+    ? { ...prev, spaceId: a.spaceId, handle: a.handle, asOf: a.asOf ?? prev.asOf } // keep sentAt: a re-send must not reset escalation
     : { ...a, key, status: a.status ?? "awaiting", escalation: 0, watchers: [], log: [] };
   alerts.set(key, next);
   return next;

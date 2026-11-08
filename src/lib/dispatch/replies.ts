@@ -9,6 +9,8 @@ export type Intent =
   | "option"
   | "resolved"
   | "help"
+  | "ack"
+  | "skip"
   | "status"
   | "ambiguous"
   | "unknown";
@@ -32,7 +34,8 @@ const RULES: [Intent, RegExp][] = [
   ["status", /^\s*\?+\s*$|\b(status|eta|how long|time left|countdown|level|update)\b/i],
   ["shutin", /\bshut[\s-]?(it|them|em|'em)?[\s-]?in\b|\bshutin\b|\bshut\b|\bshut[\s-]?down wells?\b/i],
   ["trucks", /\btrucks?\b|\bhaul\b|\bvac(uum)?\b/i],
-  ["approve", /^\s*(y|ya|yes+|yep|yeah|yup|ok(ay)?|k|go|approve[d]?|confirm(ed)?|do it|send( it)?|dispatch|sure|affirmative|roger|copy)\b|👍|\b(yes|approve|go ahead)\b/i],
+  ["ack", /\b(omw|otw|on my way|on the way|en route|heading (out|over|there)|driving (out|over)|arrived|on site|onsite|i'?m here|here now|at the (site|pad|facility)|copy( that)?|roger|10-4|got it|seen|looking( at it)?)\b|🚗|🚚/i],
+  ["approve", /^\s*(y|ya|yes+|yep|yeah|yup|ok(ay)?|k|go|approve[d]?|confirm(ed)?|do it|send( it)?|dispatch|sure|affirmative)\b|👍|\b(yes|approve|go ahead)\b/i],
   ["reject", /^\s*(n|no+|nope|nah|reject(ed)?|deny|denied|hold|wait|stop|cancel|negative)\b|👎|\b(don'?t|do not|no)\b/i],
 ];
 
@@ -50,6 +53,8 @@ export function parseReply(raw: string): Reply {
   const all = /\ball\b/i.test(text) || undefined;
   // Strip the event ref so "EV-0003" never reads as option 3 or as a status word.
   const body = ev ? text.replace(ev[0], " ").trim() : text;
+
+  if (/^\s*(skip|none|n\/a|no notes?|nothing( to add)?)\s*[.!]*\s*$/i.test(body)) return { intent: "skip", eventRef, all, raw };
 
   const opt = body.match(OPTION_RE);
   if (opt) return { intent: "option", option: Number(opt[1] ?? opt[2]), eventRef, all, raw };
@@ -70,6 +75,7 @@ export function parseReply(raw: string): Reply {
   const yn = hits.filter((h) => h === "approve" || h === "reject");
   if (yn.length > 1) return { intent: "ambiguous", candidates: yn, eventRef, all, raw };
   if (yn.length === 1) return { intent: yn[0], eventRef, all, raw };
+  if (hits.includes("ack")) return { intent: "ack", eventRef, all, raw };
   if (hits.includes("status")) return { intent: "status", eventRef, all, raw };
   return { intent: "unknown", eventRef, all, raw };
 }

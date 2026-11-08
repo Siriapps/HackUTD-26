@@ -3,9 +3,10 @@ import { analyse } from "@/lib/analyse";
 import { loadFixture } from "@/lib/data/fixtures";
 import type { Analysis, Event } from "@/lib/data/types";
 import { cheapestOf, composeAlert, composeOptions } from "./alert";
-import { handleInbound, type EngineDeps } from "./engine";
+import { NOTE_WINDOW_MS, decide, handleInbound, type EngineDeps } from "./engine";
+import { composeHandoff } from "./handoff";
 import { parseReply } from "./replies";
-import { _resetStore, getAlert, upsertAlert } from "./store";
+import { _resetStore, allAlerts, getAlert, upsertAlert } from "./store";
 
 describe("parseReply", () => {
   const cases: [string, string, Record<string, unknown>?][] = [
@@ -203,5 +204,99 @@ describe("handleInbound", () => {
   it("other technicians' conversations are isolated", async () => {
     open(pumps[0], "pho_spc_other");
     expect((await handleInbound({ spaceId: SPACE, text: "yes" }, deps())).reply).toContain("No open alerts");
+  });
+});
+
+describe("acknowledgements, confirm loop and ops decisions", () => {
+  beforeEach(_resetStore);
+
+  it.each([
+    ["omw", "ack"],
+    ["on my way", "ack"],
+    ["arrived", "ack"],
+    ["copy that", "ack"],
+    ["10-4", "ack"],
+    ["yes omw", "approve"],
+    ["skip", "skip"],
+    ["no notes", "skip"],
+  ])("parses %s → %s", (text, intent) => {
+    expect(parseReply(text).intent).toBe(intent);
+  });
+
+  it("OMW acknowledges without deciding and is logged as a reply (stops escalation)", async () => {
+    const e = pumps[0];
+    const a = open(e);
+    const r = await handleInbound({ spaceId: SPACE, text: "omw" }, deps());
+    expect(r.reply).toMatch(/Copy, .*Escalation paused.*Reply YES to approve/);
+    const after = getAlert(a.key)!;
+    expect(after.status).toBe("awaiting");
+    expect(after.ackAt).toBeTruthy();
+    expect(after.log.at(-1)).toMatchObject({ dir: "in", intent: "ack", by: "tech" });
+  });
+
+  it("FIXED asks for a note; the next text and photo are saved; SKIP closes the prompt", async () => {
+    const e = pumps[0];
+    const a = open(e);
+    const fixed = await handleInbound({ spaceId: SPACE, text: "fixed" }, deps());
+    expect(fixed.reply).toContain("Reply with a note or photo");
+    expect(getAlert(a.key)!.resolution).toMatchObject({ by: "tech", notes: [], photos: [] });
+
+    const note = await handleInbound({ spaceId: SPACE, text: "Replaced the seal, pump running again" }, deps());
+    expect(note.reply).toContain("Saved note");
+    const photo = await handleInbound({ spaceId: SPACE, text: "", attachments: ["pho_att_1"] }, deps());
+    expect(photo.reply).toContain("Saved 1 photo");
+    expect(getAlert(a.key)!.resolution).toMatchObject({ notes: ["Replaced the seal, pump running again"], photos: ["pho_att_1"] });
+
+    const skip = await handleInbound({ spaceId: SPACE, text: "skip" }, deps());
+    expect(skip.reply).toContain("closed without a note");
+    expect((await handleInbound({ spaceId: SPACE, text: "more stuff" }, deps())).reply).toMatch(/Didn't catch that/);
+  });
+
+  it("the note window expires", async () => {
+    open(pumps[0]);
+    await handleInbound({ spaceId: SPACE, text: "fixed" }, deps());
+    const late = { ...deps(), clock: () => Date.UTC(2026, 10, 8, 3, 0) + NOTE_WINDOW_MS + 1 };
+    expect((await handleInbound({ spaceId: SPACE, text: "it was the seal" }, late)).reply).toMatch(/Didn't catch that/);
+  });
+
+  it("a photo with no open job says so", async () => {
+    expect((await handleInbound({ spaceId: SPACE, text: "", attachments: ["pho_att_9"] }, deps())).reply).toContain("no open job");
+  });
+
+  it("ops console decide() uses the same engine and records who decided", async () => {
+    const e = pumps[0];
+    const a = open(e);
+    const r = await decide(a.key, "approve", "ops", deps());
+    expect(r.ok).toBe(true);
+    expect(getAlert(a.key)).toMatchObject({ status: "approved", decidedBy: "ops" });
+    const again = await handleInbound({ spaceId: SPACE, text: "yes" }, deps());
+    expect(again.reply).toContain("already approved by ops");
+    expect((await decide(a.key, "banana", "ops", deps())).ok).toBe(false);
+    expect((await decide("nope", "approve", "ops", deps())).ok).toBe(false);
+  });
+
+  it("handoff log lists decisions, fixes with notes, and flags undecided alerts", async () => {
+    const [p1, p2] = pumps;
+    const a1 = open(p1);
+    open(p2);
+    await decide(a1.key, "approve", "ops", deps());
+    await handleInbound({ spaceId: SPACE, text: `${p1.id} fixed` }, deps());
+    await handleInbound({ spaceId: SPACE, text: "bad seal" }, deps());
+    const text = composeHandoff("CONSOLE TEXT", allAlerts());
+    expect(text.startsWith("CONSOLE TEXT")).toBe(true);
+    expect(text).toContain("Overnight dispatch:");
+    expect(text).toMatch(new RegExp(`${p1.id}: alerted .*by ops .*fixed .* by tech — "bad seal"`));
+    expect(text).toMatch(new RegExp(`${p2.id}: alerted .*NO DECISION YET`));
+    expect(composeHandoff("X", [])).toContain("No alerts were dispatched overnight.");
+  });
+});
+
+describe("placeholder guard", () => {
+  it("recognises fictional numbers and example domains only", async () => {
+    const { isPlaceholder } = await import("./send");
+    expect(isPlaceholder("+15555550100")).toBe(true);
+    expect(isPlaceholder("daylead@example.com")).toBe(true);
+    expect(isPlaceholder("+19725550123")).toBe(false);
+    expect(isPlaceholder("ops@avon.energy")).toBe(false);
   });
 });

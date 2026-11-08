@@ -1,13 +1,16 @@
-// Server-side dataset access for dispatch: reads public/data/<folder> from disk and runs analyse() once per folder.
+// Server-side dataset access for dispatch: reads public/data/<folder> from disk once, and runs analyse()
+// per (folder, asOf). `asOf` is the operator's time-travel "now" so an alert sent from the past stays true.
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { analyse } from "@/lib/analyse";
 import { datasetFromStrings } from "@/lib/data/load";
-import type { Analysis } from "@/lib/data/types";
+import type { Analysis, Dataset } from "@/lib/data/types";
 
 const ROOT = path.join(process.cwd(), "public", "data");
 const REQUIRED = ["network.json", "ops.json", "telemetry.csv"];
-const cache = new Map<string, Promise<Analysis>>();
+const MAX_ANALYSES = 12;
+const datasets = new Map<string, Promise<Dataset>>();
+const analyses = new Map<string, Promise<Analysis>>();
 
 const safe = (folder: string) => {
   if (!/^[\w.-]+$/.test(folder)) throw new Error(`bad folder ${folder}`);
@@ -25,21 +28,33 @@ export async function serverFolders(): Promise<string[]> {
   return out.sort();
 }
 
-export function serverAnalysis(folder: string): Promise<Analysis> {
-  let p = cache.get(folder);
+export function serverDataset(folder: string): Promise<Dataset> {
+  let p = datasets.get(folder);
   if (!p) {
     const dir = safe(folder);
     p = Promise.all(REQUIRED.map((f) => readFile(path.join(dir, f), "utf8"))).then(([n, o, csv]) =>
-      analyse(datasetFromStrings(folder, JSON.parse(n), JSON.parse(o), csv)),
+      datasetFromStrings(folder, JSON.parse(n), JSON.parse(o), csv),
     );
-    p.catch(() => cache.delete(folder));
-    cache.set(folder, p);
+    p.catch(() => datasets.delete(folder));
+    datasets.set(folder, p);
   }
   return p;
 }
 
-export async function serverEvent(folder: string, eventId: string) {
-  const a = await serverAnalysis(folder);
+export function serverAnalysis(folder: string, asOf?: number): Promise<Analysis> {
+  const key = `${folder}|${asOf ?? "end"}`;
+  let p = analyses.get(key);
+  if (!p) {
+    p = serverDataset(folder).then((ds) => analyse(ds, asOf != null && asOf < ds.now ? asOf : undefined));
+    p.catch(() => analyses.delete(key));
+    analyses.set(key, p);
+    if (analyses.size > MAX_ANALYSES) analyses.delete(analyses.keys().next().value!);
+  }
+  return p;
+}
+
+export async function serverEvent(folder: string, eventId: string, asOf?: number) {
+  const a = await serverAnalysis(folder, asOf);
   const event = a.events.find((e) => e.id === eventId);
   return event ? { event, now: a.now, fleet: a.fleet[event.system] } : null;
 }

@@ -25,7 +25,10 @@ export async function loadRoster(): Promise<Roster> {
   for (const f of ["ops-roster.json", "ops-roster.example.json"]) {
     try {
       const r = JSON.parse(await readFile(path.join(dir, f), "utf8")) as Roster;
-      r.source = f === "ops-roster.json" ? "roster" : "example";
+      const example = f !== "ops-roster.json";
+      r.source = example ? "example" : "roster";
+      // The example file only documents the shape: none of its people are ever contacted.
+      if (example) r.on_call = r.supervisor = r.morning_crew = [];
       const override = process.env.DISPATCH_ONCALL_HANDLE?.trim();
       if (override) {
         r.on_call = [{ name: "On call", role: "technician", channel: "imessage", handle: override, systems: ["*"] }];
@@ -33,8 +36,6 @@ export async function loadRoster(): Promise<Roster> {
       }
       const sup = process.env.DISPATCH_SUPERVISOR_HANDLE?.trim();
       if (sup) r.supervisor = [{ name: "Supervisor", role: "supervisor", channel: "imessage", handle: sup }];
-      // Placeholder numbers are never paged.
-      if (r.source === "example" && !sup) r.supervisor = [];
       return r;
     } catch {
       /* try next */
