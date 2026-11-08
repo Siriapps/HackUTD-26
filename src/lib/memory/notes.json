@@ -1,0 +1,50 @@
+[
+  {
+    "id": "note-pf-1",
+    "category": "pump_failure",
+    "system": "S1",
+    "level_pct": 66,
+    "hours_to_limit": 2.9,
+    "summary": "Pump tripped to fault during a lightning storm; tank climbing with the pump stopped.",
+    "outcome": "VFD showed an overcurrent fault. One reset held and the pump was back near rated flow within 10 minutes. Trucks were stood down before the first arrival."
+  },
+  {
+    "id": "note-pf-2",
+    "category": "pump_failure",
+    "system": "S4",
+    "level_pct": 72,
+    "hours_to_limit": 2.2,
+    "summary": "Pump fault with the tank already above the start setpoint; countdown just over two hours.",
+    "outcome": "Mechanical seal had failed and the pump would not re-prime. Mechanic ETA was 3 h against a 2.2 h countdown, so two trucks took 300 bbl and the tank peaked at 88 %."
+  },
+  {
+    "id": "note-pf-3",
+    "category": "pump_failure",
+    "system": "S2",
+    "level_pct": 58,
+    "hours_to_limit": 4.0,
+    "summary": "Pump stopped on a tripped breaker; four hours to shutdown.",
+    "outcome": "Breaker had tripped on a chewed cable in the junction box. Locked out, cable replaced, restarted after 90 minutes. The one truck trip already rolling was still used."
+  },
+  {
+    "id": "note-pl-1",
+    "category": "pipeline_leak",
+    "system": "S3",
+    "summary": "Receive flow fell below pump flow over a day with pipeline pressure down about 30 psi.",
+    "outcome": "Pinhole at a weld 400 m from the disposal end, found by walking from the pressure-drop end. Pump stopped, block valves closed, vac truck recovered 40 bbl; clamp fitted and back online next day."
+  },
+  {
+    "id": "note-pl-2",
+    "category": "pipeline_leak",
+    "system": "S5",
+    "summary": "Receive ratio drifted to 0.91 over a day; discharge pressure unchanged.",
+    "outcome": "Flange gasket weeping at the riser, contained inside the berm. Regulator notified; spill response not needed. Gasket replaced on day shift."
+  },
+  {
+    "id": "note-pd-1",
+    "category": "pump_degradation",
+    "system": "S2",
+    "summary": "Running flow ratio down to 0.86 and discharge about 12 psi low; receive ratio still 1.0.",
+    "outcome": "Suction strainer half-blocked with paraffin. Cleaned and the ratio returned to 0.99. Impeller and wear-ring swap scheduled anyway for the next maintenance window."
+  }
+]
