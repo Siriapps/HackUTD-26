@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PhotonClient, photonConfig } from "./client";
+import { PhotonClient, photonConfig, safeKey } from "./client";
 import { parseEvent } from "./events";
 import { _reset, accept, emit, onEvent, recent } from "./inbox";
 import { sign, verifyWebhook } from "./verify";
@@ -81,6 +81,14 @@ describe("inbox", () => {
     await emit(e);
     expect(recent()).toHaveLength(1);
     expect(seen).toEqual(["evt_1"]);
+  });
+});
+
+describe("safeKey", () => {
+  it("makes idempotency keys Photon-valid (printable ASCII, no spaces, ≤255)", () => {
+    expect(safeKey("alert:f:EV-1:1 truck, 1 trip|905")).toBe("alert:f:EV-1:1_truck,_1_trip|905");
+    expect(safeKey("x".repeat(300))).toHaveLength(255);
+    expect(safeKey("é ")).toMatch(/^[\x21-\x7e]+$/);
   });
 });
 
