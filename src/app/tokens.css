@@ -51,9 +51,9 @@
   --focus: #9db4ff;
   --ring: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--focus);
 
-  /* Type. Display = ZT Moven Bold Italic (layout.tsx); body = Helvetica Neue; numerals = Plex Mono. */
-  --font-display: var(--font-zt-moven), "ZT Moven", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-sans: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+  /* Type. Display = ZT Moven Bold Italic (brand + page titles); everything read = Geist; numerals = Plex Mono. */
+  --font-display: var(--font-zt-moven), "ZT Moven", Geist, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-geist), Geist, "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono, var(--font-geist-mono)), "IBM Plex Mono", ui-monospace, monospace;
   /* 14px base, ratio ~1.2 (minor third): dense console, 8 steps. */
   --fs-xs: 0.6875rem;

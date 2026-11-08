@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipContentProps } from "recharts";
+import { CartesianGrid, Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipContentProps } from "recharts";
 import type { Dataset, Event, PlanOption } from "@/lib/data/types";
 import { facilityIndex } from "@/store/select";
 import { fmtClock, fmtMoney, fmtPct } from "./format";
@@ -35,12 +35,34 @@ export function PlanCompare({ event, dataset }: { event: Event; dataset: Dataset
   for (let t = Math.ceil(start / 3600) * 3600; t <= end; t += 3600) ticks.push(t);
 
   const color = (i: number, o: PlanOption) => (i === 0 ? "var(--accent)" : o.feasible ? "var(--text-3)" : "var(--shutdown)");
+  const rec = plan.recommended;
+  const peakPt = rec.curve.reduce((m, p) => (p.level_pct > m.level_pct ? p : m), rec.curve[0]);
+  const cheaperUnavailable = plan.alternatives.find((o) => o.cost < rec.cost);
+  const fleetLine = event.evidence.find((l) => /trucks? (free|allocated|used)/.test(l));
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_300px] max-[1100px]:grid-cols-1 gap-4">
+    <div className="grid grid-cols-[minmax(0,1fr)_320px] max-[1100px]:grid-cols-1 gap-4">
+      <div className="min-w-0">
+        {/* The why, in one sentence, from the numbers on hand. */}
+        <p className="mb-2 text-sm text-ink-2 leading-relaxed">
+          {rec.feasible ? (
+            <>
+              <span className="text-ink-1 font-medium">{rec.label}</span> holds the tank at a peak of <span className="num text-ink-1">{fmtPct(peakPt.level_pct)}</span>
+              {peakPt.level_pct >= shutdown - 0.5 ? " (at the limit, not over)" : ""} until repair ends at <span className="num">{fmtClock(end)}</span>, for{" "}
+              <span className="num text-ink-1 font-semibold">{fmtMoney(rec.cost)}</span>.
+              {fleetLine ? ` ${fleetLine}.` : ""}
+              {cheaperUnavailable ? ` ${cheaperUnavailable.label} would be ${fmtMoney(cheaperUnavailable.cost)} if its trucks were free.` : ""}
+            </>
+          ) : (
+            <>
+              No option keeps this tank under <span className="num">{shutdown}%</span>; the cheapest outcome is to <span className="text-ink-1 font-medium">{rec.label.toLowerCase()}</span> for{" "}
+              <span className="num text-ink-1 font-semibold">{fmtMoney(rec.cost)}</span>.
+            </>
+          )}
+        </p>
       <div className="h-[300px] min-w-0">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 12, right: 16, bottom: 4, left: 0 }}>
+          <LineChart data={data} margin={{ top: 12, right: 104, bottom: 4, left: 0 }}>
             <CartesianGrid stroke="var(--line-1)" vertical={false} />
             <XAxis
               dataKey="t"
@@ -62,7 +84,10 @@ export function PlanCompare({ event, dataset }: { event: Event; dataset: Dataset
             />
             <ReferenceLine y={shutdown} stroke="var(--shutdown)" strokeWidth={1} label={{ value: `shutdown ${shutdown}%`, position: "insideTopRight", fill: "var(--shutdown)", fontSize: 11 }} />
             <ReferenceLine y={warning} stroke="var(--warn)" strokeDasharray="4 4" label={{ value: `warning ${warning}%`, position: "insideTopRight", fill: "var(--warn)", fontSize: 11 }} />
-            <ReferenceLine x={end} stroke="var(--text-3)" label={{ value: `repair ends ${fmtClock(end)}`, position: "insideTopLeft", fill: "var(--text-2)", fontSize: 11 }} />
+            <ReferenceLine x={end} stroke="var(--text-3)" label={{ value: `repair ends ${fmtClock(end)}`, position: "right", fill: "var(--text-2)", fontSize: 11 }} />
+            {rec.feasible && peakPt && (
+              <ReferenceDot x={peakPt.t_unix} y={peakPt.level_pct} r={4} fill="var(--accent)" stroke="var(--surface-1)" strokeWidth={2} label={{ value: `peak ${fmtPct(peakPt.level_pct)}`, position: "top", fill: "var(--text-1)", fontSize: 11 }} />
+            )}
             {arrivals.map((at) => (
               <ReferenceLine
                 key={at}
@@ -99,6 +124,7 @@ export function PlanCompare({ event, dataset }: { event: Event; dataset: Dataset
           {arrivals.length ? "Short ticks mark truck arrivals. " : ""}Plan starts {fmtClock(start)}, horizon is the repair end.
         </p>
       </div>
+      </div>
 
       <ol className="text-sm self-start" onMouseLeave={() => setHover(null)}>
         {options.map((o, i) => (
@@ -111,10 +137,16 @@ export function PlanCompare({ event, dataset }: { event: Event; dataset: Dataset
           >
             <span className="mt-2 h-0.5 rounded" style={{ background: color(i, o), width: 14 }} aria-hidden />
             <span className="min-w-0">
-              <span className="block truncate">{o.label}</span>
-              <span className="block text-xs text-ink-3 num">
-                {o.feasible ? `peak ${fmtPct(o.peak_level_pct)}` : `trips at ${o.trips_at_unix ? fmtClock(o.trips_at_unix) : "—"}`}
-                {i === 0 ? " · recommended" : ""}
+              <span className="block leading-snug">{o.label}</span>
+              <span className="block text-xs num">
+                <span className={o.feasible ? "text-ok" : "text-shutdown"} style={{ color: o.feasible ? "var(--ok)" : "var(--shutdown)" }}>
+                  {o.feasible ? "holds" : "trips"}
+                </span>
+                <span className="text-ink-3">
+                  {" "}
+                  · {o.feasible ? `peak ${fmtPct(o.peak_level_pct)}` : `at ${o.trips_at_unix ? fmtClock(o.trips_at_unix) : "—"}`}
+                  {i === 0 ? " · recommended" : ""}
+                </span>
               </span>
             </span>
             <span className={`num ${i === 0 ? "font-semibold" : ""}`}>{fmtMoney(o.cost)}</span>

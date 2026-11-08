@@ -119,22 +119,26 @@ input[type="range"].scrub::-moz-range-thumb {
   padding: 10px 14px 8px;
   border-bottom: 1px solid var(--line-1);
 }
+/* Panel titles are read, not branded: the grotesk at 600. The display italic is for the brand and page titles only. */
 .panel-title {
-  font-family: var(--font-display);
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  font-style: italic;
-  letter-spacing: -0.01em;
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  letter-spacing: -0.005em;
   color: var(--text-1);
 }
 
 .brand,
-h1,
-h2,
-h3 {
+h1 {
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 700;
+}
+h2,
+h3 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.005em;
 }
 .panel-sub {
   font-size: var(--fs-sm);
@@ -244,18 +248,46 @@ table.data th.n {
 @media (max-width: 1279px) {
   .ops-dash {
     grid-template-columns: 360px minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    /* Map keeps at least 320px; the side row never grows past 42 % of the height (handoff scrolls inside). */
+    grid-template-rows: minmax(320px, 1fr) minmax(0, 42%);
     grid-template-areas:
       "alerts map"
       "alerts side";
   }
+  .area-map {
+    min-height: 0;
+    overflow: hidden;
+  }
   .area-side {
     flex-direction: row;
     align-items: stretch;
+    min-height: 0;
   }
   .area-side > * {
     flex: 1 1 0;
     min-width: 0;
+    min-height: 0;
+    overflow: auto;
+  }
+}
+@media (max-width: 760px) {
+  .ops-dash {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: "alerts";
+    height: auto;
+  }
+  .area-map,
+  .area-side {
+    display: none;
+  }
+}
+/* Touch: every control meets a 40px target without changing the desktop density. */
+@media (pointer: coarse) {
+  .btn,
+  .btn.h-6 {
+    height: 40px;
+    padding: 0 14px;
   }
 }
 
@@ -264,13 +296,14 @@ table.data th.n {
   background: #05080f;
   font-family: var(--font-sans);
 }
+.leaflet-container .leaflet-control.leaflet-control-attribution,
 .leaflet-container .leaflet-control-attribution {
-  background: rgba(7, 11, 20, 0.75);
-  color: var(--text-3);
-  font-size: 10px;
+  background: rgba(7, 11, 20, 0.85) !important; /* leaflet.css loads after this file and would win on equal specificity */
+  color: var(--text-2) !important;
+  font-size: 11px;
 }
 .leaflet-container .leaflet-control-attribution a {
-  color: var(--text-2);
+  color: var(--text-1) !important;
 }
 .leaflet-container .leaflet-bar a {
   background: var(--surface-2);

@@ -15,6 +15,7 @@ const NAV = [
   { href: "/", label: "Dashboard" },
   { href: "/timeline", label: "Timeline" },
   { href: "/dispatch", label: "On-call" },
+  { href: "/landing", label: "Story" },
 ];
 
 export function TopBar() {
@@ -34,7 +35,7 @@ export function TopBar() {
   }
 
   return (
-    <header className="shrink-0 h-[52px] px-3 flex items-center gap-3 border-b border-line-1 bg-surface-1">
+    <header className="shrink-0 min-h-[52px] px-3 py-1.5 flex items-center gap-3 flex-wrap border-b border-line-1 bg-surface-1">
       <Link href="/" className="brand text-xl tracking-tight text-ink-1 no-underline whitespace-nowrap">
         Flare
       </Link>
@@ -54,22 +55,24 @@ export function TopBar() {
         })}
       </nav>
 
-      <div className="ml-auto flex items-center gap-3 min-w-0">
+      <div className="ml-auto flex items-center gap-3 min-w-0 flex-wrap max-[760px]:ml-0 max-[760px]:w-full">
         <FolderPicker />
         {phase === "ready" && dataset && analysis && (
           <>
             <span className="hidden min-[1200px]:inline num text-xs text-ink-3 whitespace-nowrap">data to {fmtTime(dataset.now)}</span>
-            <TimeScrubber />
+            <div className="max-[760px]:!hidden contents">
+              <TimeScrubber />
+            </div>
             {source === "fixture" && (
               <span className="chip" style={{ background: "var(--accent-wash)", color: "var(--accent)" }} title="analyse() returned no events; showing the hand-written fixture from src/store/fixture.ts">
                 fixture data
               </span>
             )}
-            <button type="button" className="btn" onClick={() => downloadEventsJson(analysis)} title="Download events.json (SPEC shape)">
+            <button type="button" className="btn max-[760px]:!hidden" onClick={() => downloadEventsJson(analysis)} title="Download events.json (SPEC shape)">
               Export
             </button>
             <button type="button" className="btn btn-primary" onClick={sendAll} title="Text the shift handoff to the morning crew">
-              Handoff
+              Text handoff
             </button>
             {note && <span className="text-xs text-ink-3 whitespace-nowrap">{note}</span>}
           </>

@@ -62,7 +62,9 @@ export const useOps = create<OpsState>()(
         try {
           const folders = await listDatasets();
           set({ folders });
-          const wanted = get().folder;
+          // A deep link (?folder=) wins over the folder remembered from last time.
+          const fromUrl = typeof location !== "undefined" ? new URLSearchParams(location.search).get("folder") : null;
+          const wanted = fromUrl && folders.some((f) => f.folder === fromUrl) ? fromUrl : get().folder;
           const pick = folders.find((f) => f.folder === wanted)?.folder ?? folders[0]?.folder ?? null;
           if (!pick) {
             set({ phase: "error", error: "No dataset folders found under public/data." });

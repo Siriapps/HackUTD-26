@@ -66,7 +66,7 @@ function Hud({ facility, readings, limits, event, plan, t }: Twin3DProps) {
         : { word: "off", cls: "text-ink-2" };
   const levelCls = level >= limits.shutdown ? "text-shutdown" : level >= limits.warning ? "text-warn" : "text-ink-1";
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-x-4 gap-y-1 px-3 py-2">
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-x-4 gap-y-1 px-3 py-2 bg-gradient-to-t from-[rgb(5_8_15/0.85)] to-transparent">
       <div className="flex items-center gap-2">
         <span className="num text-sm text-ink-1">{facility.id}</span>
         {active && (
@@ -75,7 +75,7 @@ function Hud({ facility, readings, limits, event, plan, t }: Twin3DProps) {
           </span>
         )}
       </div>
-      <dl className="num flex items-baseline gap-4 text-sm text-ink-2">
+      <dl className="num flex flex-wrap items-baseline justify-end gap-x-3 gap-y-0.5 text-xs text-ink-2 min-w-0">
         <div>
           <dt className="sr-only">Tank level</dt>
           <dd>
