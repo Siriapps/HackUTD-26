@@ -14,6 +14,7 @@ export function upsertIncident(folder: string, e: Event): void {
       `INSERT INTO incidents (id, dataset, event_id, system_id, facility_id, asset_id, category, onset_ts, end_ts, status, confidence, evidence, plan, updated_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,to_timestamp($8),CASE WHEN $9::double precision IS NULL THEN NULL ELSE to_timestamp($9) END,$10,$11,$12::jsonb,$13::jsonb,now())
        ON CONFLICT (id) DO UPDATE SET end_ts = EXCLUDED.end_ts, status = EXCLUDED.status, confidence = EXCLUDED.confidence,
+         category = EXCLUDED.category, system_id = EXCLUDED.system_id, facility_id = EXCLUDED.facility_id, asset_id = EXCLUDED.asset_id, onset_ts = EXCLUDED.onset_ts,
          evidence = EXCLUDED.evidence, plan = COALESCE(EXCLUDED.plan, incidents.plan), updated_at = now()`,
       [id(folder, e.id), folder, e.id, e.system, e.facility, e.asset, e.category, e.onset_unix, e.end_unix, e.status, e.confidence, JSON.stringify(e.evidence), e.plan ? JSON.stringify({ recommended: e.plan.recommended, alternatives: e.plan.alternatives.map((o) => ({ label: o.label, cost: o.cost, feasible: o.feasible, actions: o.actions })) }) : null],
     ),
@@ -28,6 +29,11 @@ export function annotateIncident(folder: string, eventId: string, patch: { verdi
       `INSERT INTO incidents (id, dataset, event_id, system_id, facility_id, asset_id, category, onset_ts, end_ts, status, visual_report, verdict, resolution, updated_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,to_timestamp($8),CASE WHEN $9::double precision IS NULL THEN NULL ELSE to_timestamp($9) END,$10,$11::jsonb,$12,$13,now())
        ON CONFLICT (id) DO UPDATE SET
+         category = CASE WHEN incidents.category = 'unknown' THEN EXCLUDED.category ELSE incidents.category END,
+         system_id = CASE WHEN incidents.system_id = '' THEN EXCLUDED.system_id ELSE incidents.system_id END,
+         facility_id = CASE WHEN incidents.facility_id = '' THEN EXCLUDED.facility_id ELSE incidents.facility_id END,
+         asset_id = CASE WHEN incidents.asset_id = '' THEN EXCLUDED.asset_id ELSE incidents.asset_id END,
+         onset_ts = CASE WHEN extract(epoch FROM incidents.onset_ts) = 0 THEN EXCLUDED.onset_ts ELSE incidents.onset_ts END,
          end_ts = COALESCE(EXCLUDED.end_ts, incidents.end_ts), status = COALESCE($10, incidents.status),
          visual_report = COALESCE(EXCLUDED.visual_report, incidents.visual_report), verdict = COALESCE($12, incidents.verdict),
          resolution = COALESCE($13, incidents.resolution), updated_at = now()`,
