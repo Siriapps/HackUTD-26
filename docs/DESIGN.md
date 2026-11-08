@@ -178,8 +178,33 @@ Instrument-panel radii: `--r-sm` 4px on inputs and chips' inner corners, `--r-md
 - Forms: inputs `bg-surface-2 border-line-1 rounded-sm`, focus `--ring`; sliders use `accent-color` (already set).
 - Empty state: one sentence saying what will appear here and the action that fills it. Loading: skeleton blocks in
   `surface-2`, never a centred spinner in content.
-- Motion: 150-220 ms, `--ease-out`, state changes only. The 3D twin animates continuously (flow particles, fault
-  pulse) because it shows live state; everything else is still until it changes. Respect `prefers-reduced-motion`.
+- Motion: see the Motion section; UI transitions use `--dur-base` and `--ease-standard` unless listed otherwise.
+
+## Motion
+
+Principles: purposeful (motion shows a state change or a live quantity, never decoration), quick (UI motion
+120-320 ms, the user is mid-task), physical (decelerate on entry, accelerate on exit, one easing family), accessible
+(`prefers-reduced-motion` collapses every duration to 0 and freezes the twin to a correct still frame).
+
+| Token | Value | Use |
+|---|---|---|
+| `--dur-instant` | 50 ms | toggle, checkbox |
+| `--dur-fast` | 120 ms | hover, tooltip, chip |
+| `--dur-base` | 200 ms | default: dropdown, focus ring, row select, countdown tick |
+| `--dur-slow` | 320 ms | panel or drawer slide, chart series swap |
+| `--dur-deliberate` | 600 ms | one authored moment per screen (a countdown turning red) |
+| `--pulse-period` | 1 s | fault pulse, twin and countdown alike |
+
+Easing is one family: `--ease-standard` for anything moving between states, `--ease-enter` for things arriving,
+`--ease-exit` for things leaving (Tailwind `ease-standard` / `ease-enter` / `ease-exit`). Linear only for loops.
+Choreography: related elements stagger 30-50 ms and finish within 500 ms; one group, one duration. No page-load
+sequence: the console loads into a task.
+
+The twin is the exception that moves continuously because it shows live state: tank fill eases to the live level
+(~170 ms to 63 %), a failed pump pulses amber at 1 Hz, flow particles travel at a speed proportional to receive
+flow, leak drips start with the leak event, a replayed plan pulls a slug of level down at each truck arrival, and the
+camera idles in a slow orbit (about 150 s per turn) that pauses while the pointer is over it or dragging. Under
+reduced motion it renders on demand, snaps to each value and does not orbit.
 
 ## Do's and Don'ts
 
