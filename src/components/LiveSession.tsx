@@ -433,11 +433,21 @@ export default function LiveSession({ ctx, briefing, onMemoryChange }: Props) {
             <span className="absolute bottom-2 right-2 rounded-md bg-black/55 px-2 py-1 text-[12px] font-medium text-white">Tap to save a frame</span>
           )}
         </button>
+        {avail?.configured && (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={snapshot} disabled={!!busy}>
+              {busy === "snapshot" ? "…" : "Photo"}
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={buildReport} disabled={!!busy || !frameCount}>
+              {busy === "report" ? "Writing…" : frameCount ? `Visual report · ${frameCount}` : "Visual report"}
+            </button>
+          </div>
+        )}
         <Transcript lines={lines} speaking={speaking} />
       </section>
 
       <nav className="bar" aria-label="Call controls">
-        <div className="grid grid-cols-[minmax(0,1fr)_5.5rem] gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-2">
           {live || status === "starting" ? (
             <button type="button" className="btn btn-ghost" onClick={() => end("Call ended.")} disabled={status === "starting"}>
               {status === "starting" ? "Connecting…" : "End call"}
@@ -447,15 +457,7 @@ export default function LiveSession({ ctx, briefing, onMemoryChange }: Props) {
               {off ? "Live unavailable" : status === "ended" ? "Start again" : "Start live call"}
             </button>
           )}
-          <button type="button" className="btn btn-ghost" onClick={snapshot} disabled={!avail?.configured || !!busy}>
-            {busy === "snapshot" ? "…" : "Photo"}
-          </button>
-        </div>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={buildReport} disabled={!avail?.configured || !!busy || !frameCount}>
-            {busy === "report" ? "Writing…" : frameCount ? `Report · ${frameCount}` : "Visual report"}
-          </button>
-          <button type="button" className="btn btn-danger btn-sm" data-armed={armed} onClick={escalateTap}>
+          <button type="button" className="btn btn-danger" data-armed={armed} onClick={escalateTap}>
             {armed ? "Tap again" : "Escalate"}
           </button>
         </div>

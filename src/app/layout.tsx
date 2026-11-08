@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono } from "next/font/google";
+import { Geist, IBM_Plex_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -12,6 +12,8 @@ const ztMoven = localFont({
   display: "swap",
 });
 const plexMono = IBM_Plex_Mono({ variable: "--font-plex-mono", subsets: ["latin"], weight: ["400", "500", "600"] });
+// Everything read: Geist (variable). Numerals stay Plex Mono; brand/page titles stay ZT Moven.
+const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Flare",
@@ -20,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${ztMoven.variable} ${plexMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${ztMoven.variable} ${plexMono.variable} ${geist.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <div className="flex-1 flex flex-col min-h-0">{children}</div>
         {/* Required by the challenge README. Keep on every page. */}

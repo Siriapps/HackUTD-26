@@ -26,12 +26,12 @@ colors:
   focus: "#9db4ff"
 typography:
   body:
-    fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif"
+    fontFamily: "Geist, Helvetica Neue, Arial, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.5
   label:
-    fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif"
+    fontFamily: "Geist, Helvetica Neue, Arial, sans-serif"
     fontSize: "0.75rem"
     fontWeight: 500
     lineHeight: 1.35

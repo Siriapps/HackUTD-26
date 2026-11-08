@@ -24,7 +24,7 @@ export function TankGauge({
   const fill = tone === "shutdown" ? "var(--shutdown)" : tone === "failure" ? "var(--cat-failure-mark)" : "var(--ok-mark)";
   const ok = Number.isFinite(level);
   return (
-    <svg width={150} height={height} viewBox={`0 0 150 ${height}`} role="img" aria-label={`Tank level ${ok ? level.toFixed(1) : "unknown"} percent`}>
+    <svg width={190} height={height} viewBox={`0 0 190 ${height}`} role="img" aria-label={`Tank level ${ok ? level.toFixed(1) : "unknown"} percent`}>
       <rect x={x} y={top} width={w} height={h} rx={3} fill="var(--surface-3)" stroke="var(--line-2)" />
       {ok && <rect x={x} y={y(level)} width={w} height={top + h - y(level)} rx={2} fill={fill} opacity={0.9} />}
       {/* limits */}
