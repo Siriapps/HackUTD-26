@@ -46,3 +46,6 @@ next-env.d.ts
 !.env.example
 # scratch
 *.local
+
+# agent worktrees
+/.claude/worktrees/
