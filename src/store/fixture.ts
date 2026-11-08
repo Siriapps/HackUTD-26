@@ -24,7 +24,8 @@ import type {
 import { fmtClock } from "@/components/format";
 import { describeActions } from "@/lib/export/handoff";
 
-export const FIXTURE_ENABLED = true;
+/** Off: dashboard runs the real `analyse()` from main. Keep the fixture module for offline demos. */
+export const FIXTURE_ENABLED = false;
 
 const H = 3600;
 

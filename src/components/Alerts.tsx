@@ -33,7 +33,7 @@ export function Alerts({ compact = false }: { compact?: boolean }) {
 
   // SPEC order puts every pump failure first, so the index is its priority rank.
   return (
-    <ol className="divide-y divide-line">
+    <ol className="divide-y divide-line-1">
       {alerts.map((e, i) => (
         <AlertRow key={e.id} e={e} rank={e.category === "pump_failure" ? i + 1 : null} now={now} horizon={horizon} compact={compact} folder={dataset.folder} />
       ))}
@@ -77,7 +77,7 @@ function AlertRow({
   }
 
   return (
-    <li className="relative">
+    <li className="relative hover:bg-surface-2 transition-colors duration-[var(--dur-fast)]">
       <div className={`grid grid-cols-[44px_minmax(0,1fr)] gap-x-3 ${compact ? "px-3 py-2.5" : "px-4 py-3"}`}>
         <div className="pt-0.5">
           {htl != null ? (

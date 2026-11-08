@@ -36,13 +36,13 @@
   cursor: not-allowed;
 }
 .btn-primary {
-  background: var(--text-1);
-  border-color: var(--text-1);
-  color: var(--surface-0);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
 }
 .btn-primary:hover {
-  background: #fff;
-  border-color: #fff;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 .btn-quiet {
   background: transparent;

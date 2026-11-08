@@ -48,7 +48,7 @@ export default function TimelinePage() {
           {analysis.alerts.length === 0 ? (
             <p className="px-4 py-6 text-sm text-ink-3">Nothing was in progress at this moment. Click an event bar above to jump to it.</p>
           ) : (
-            <ul className="divide-y divide-line">
+            <ul className="divide-y divide-line-1">
               {analysis.alerts.map((e) => {
                 const hind = full.events.find((x) => x.id === e.id) ?? e;
                 const o = actualOutcome(dataset, hind);
