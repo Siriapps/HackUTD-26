@@ -22,8 +22,10 @@ Synthetic telemetry store + shared persistence (see the Tiger Data issue for sch
 ingest + `src/lib/db.ts` + `/api/trends` first; P4/P3/P2 consume. Browser `analyse()` on the loaded folder remains
 the source of truth for detection/plans (judging constraint); the app must fully work with DATABASE_URL unset.
 
-## Merging
-Nobody merges their own PR. When CI is green and one teammate has approved, comment `ready to merge` on the PR.
-Siri's orchestrator session reviews and squash-merges (ask Siri). After each merge everyone rebases onto `origin/main`.
+## Merging (no human merger)
+`main` is protected: CI (`check`) green + 1 approving review from a teammate, then GitHub auto-merges (squash).
+Author: open the PR, then run `gh pr merge --auto --squash <n>` once. Reviewer: any teammate, `gh pr review <n> --approve`
+after reading the "How to test this feature" section and trying it. Nobody approves their own PR. After each merge
+everyone rebases onto `origin/main`.
 Merge order: P2 folder picker + alerts → P1 single-facility optimiser → P2 plan chart → P1 joint fleet → P4 Live
 session → P3 Discord → the rest as it lands.
