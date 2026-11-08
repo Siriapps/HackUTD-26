@@ -66,7 +66,7 @@ export function composeAlert(event: Event, ctx: AlertCtx): string {
   const plan = event.plan;
   if (plan) {
     const rec = plan.recommended;
-    lines.push("", `PLAN: ${optionLine(rec)}`);
+    lines.push("", `PLAN (cheapest option): ${optionLine(rec)}`);
     const alt = (["trucks", "shutin"] as const)
       .map((k) => cheapestOf(event, k))
       .filter((o): o is PlanOption => !!o && o !== rec);
