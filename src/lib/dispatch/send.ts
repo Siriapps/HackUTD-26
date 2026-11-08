@@ -11,6 +11,8 @@ export interface SendAlertInput {
   folder?: string;
   /** Operator's time-travel now (dataset unix s). */
   asOf?: number;
+  /** Wall-clock ms of this replay firing. A new pass must send again; omit for a manual text, which stays idempotent. */
+  replayId?: number;
   to?: string;
   dryRun?: boolean;
   baseUrl: string;
@@ -47,9 +49,11 @@ export async function sendAlert(input: SendAlertInput): Promise<SendResult> {
     return { ok: true, sent: false, reason, to, text };
   }
 
-  // Same event + plan → same key → Photon drops the duplicate; a re-optimised plan is a new message.
+  // Manual text: same event + plan + asOf → same key, so a double-click does not double-text.
+  // Replay passes replayId. Photon 422s when a key is reused with a different body, and a
+  // matching key does not deliver a second message, so each forward pass needs its own key.
   const planSig = event.plan ? `${event.plan.recommended.label}|${Math.round(event.plan.recommended.cost)}` : "inspect";
-  const key = `alert:${folder}:${event.id}:${hash(`${planSig}|${input.asOf ?? ""}`)}`;
+  const key = `alert:${folder}:${event.id}:${hash(`${planSig}|${input.asOf ?? ""}|${input.replayId ?? ""}`)}`;
   const repeat = !!getAlert(alertKey(folder, event.id));
   try {
     const { space, sender } = await client.directSpace("imessage", to);

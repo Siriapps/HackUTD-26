@@ -44,10 +44,17 @@ export function ReplayControls() {
   const setSpeed = useOps((s) => s.setSpeed);
   const setAutoText = useOps((s) => s.setAutoText);
   const dataset = useOps((s) => s.dataset);
+  const fullAnalysis = useOps((s) => s.fullAnalysis);
   const nowOverride = useOps((s) => s.nowOverride);
   const setNow = useOps((s) => s.setNow);
   if (!dataset) return null;
   const atEnd = (nowOverride ?? dataset.now) >= dataset.now;
+  // ts[0] + 8 h lands in a quiet stretch (the showcase failures are days later). Start just
+  // before the first ongoing pump failure so Play at 1 min/s streams alerts within a minute.
+  const cue = fullAnalysis?.events.find((e) => e.category === "pump_failure" && e.status === "ongoing")
+    ?? fullAnalysis?.events.find((e) => e.category === "pump_failure")
+    ?? fullAnalysis?.events[0];
+  const replayFrom = Math.max(dataset.ts[0], Math.min(dataset.now, (cue?.onset_unix ?? dataset.ts[0] + 8 * 3600) - 20 * 60));
 
   return (
     <div className="flex items-center gap-2 min-w-0">
@@ -55,7 +62,9 @@ export function ReplayControls() {
         type="button"
         className={`btn ${playing ? "btn-primary" : ""}`}
         onClick={() => {
-          if (atEnd && !playing) setNow(dataset.ts[0] + 8 * 3600); // start a replay from early morning, not the end
+          // The live end seeks to just before the first failure so Play reaches a firing.
+          // A scrubbed clock stays where it was dragged: playback continues from there.
+          if (!playing && atEnd) setNow(replayFrom);
           setPlaying(!playing);
         }}
         aria-pressed={playing}

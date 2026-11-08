@@ -5,13 +5,14 @@ import { serverEvent } from "@/lib/dispatch/server-data";
 import { upsertIncident } from "@/lib/db/incidents";
 
 /**
- * POST { eventId, folder?, asOf?, to?, dryRun? } → texts the on-call tech the alert for one event.
- * dryRun (or no Photon config) returns the composed text without sending. Re-sending the same
- * event + plan is a no-op at Photon (idempotency key), so double-clicks never double-text.
+ * POST { eventId, folder?, asOf?, replayId?, to?, dryRun? } → texts the on-call tech the alert for one event.
+ * dryRun (or no Photon config) returns the composed text without sending. A manual resend of the
+ * same event + plan is a no-op at Photon. replayId (the replay firing's wall clock) makes a new
+ * forward pass a new message.
  */
 export async function POST(request: Request) {
   wireDispatch();
-  const body = (await request.json().catch(() => ({}))) as { eventId?: string; folder?: string; asOf?: number; to?: string; dryRun?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { eventId?: string; folder?: string; asOf?: number; replayId?: number; to?: string; dryRun?: boolean };
   if (!body.eventId) return NextResponse.json({ error: "eventId required" }, { status: 400 });
   const baseUrl = process.env.PUBLIC_BASE_URL || new URL(request.url).origin;
   const r = await sendAlert({ ...body, eventId: body.eventId, baseUrl });

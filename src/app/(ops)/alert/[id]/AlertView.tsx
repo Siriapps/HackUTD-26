@@ -184,7 +184,7 @@ export function AlertView({ id }: { id: string }) {
           <h2 className="panel-title">Health now</h2>
           <span className="panel-sub num">{fmtClock(now)}</span>
         </header>
-        <div className="px-4 py-3 grid grid-cols-[auto_1fr] gap-x-5 gap-y-3 items-center">
+        <div className="px-4 py-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-3 items-start">
           {htl != null ? (
             <CountdownRing hours={htl} horizonHours={horizon} size={72} caption="tank">
               {fmtPct(level, 0)}
@@ -194,7 +194,7 @@ export function AlertView({ id }: { id: string }) {
               <span className="num text-sm">{fmtPct(level, 0)}</span>
             </span>
           )}
-          <div>
+          <div className="min-w-0">
             {htl != null ? (
               <p className="num-display text-3xl leading-none" style={{ color: htl < 1 ? "var(--shutdown)" : "var(--text-1)" }}>
                 {fmtHours(htl)} <span className="text-base text-ink-2 font-sans">to shutdown · {fmtClock(now + htl * 3600)}</span>
