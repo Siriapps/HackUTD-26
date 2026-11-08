@@ -6,6 +6,8 @@ import { FIELD_TOOLS, buildBriefing } from "@/lib/memory";
 import { FIXTURES } from "@/lib/memory/fixture";
 import { liveConfig } from "../gemini";
 import { GLASSES_VISION_RULES, deviceAllowed, liveSetupMessage, liveWebSocketUrl } from "./session";
+import { LIVE_TOOLS } from "@/lib/live/live-tools";
+import { SIMULATION_RULES } from "@/lib/live/simulation";
 
 interface WsServer {
   on(ev: "connection", cb: (sock: { on(ev: "message", cb: (d: Buffer) => void): void; send(d: string): void }, req: { url?: string }) => void): void;
@@ -61,5 +63,56 @@ describe("glasses live session", () => {
     expect(deviceAllowed(req(), { NODE_ENV: "production" })).toBe(false);
     expect(deviceAllowed(req(), { FIELD_DEVICE_TOKEN: "s3cret", NODE_ENV: "development" })).toBe(false);
     expect(deviceAllowed(req({ "x-field-token": "s3cret" }), { FIELD_DEVICE_TOKEN: "s3cret", NODE_ENV: "production" })).toBe(true);
+  });
+});
+
+describe("LIVE_TOOLS: glasses-only incident response tools", () => {
+  it("includes update_runbook_step", () => {
+    expect(LIVE_TOOLS.map((t) => t.name)).toContain("update_runbook_step");
+  });
+
+  it("includes draft_incident_report", () => {
+    expect(LIVE_TOOLS.map((t) => t.name)).toContain("draft_incident_report");
+  });
+
+  it("includes submit_incident_report", () => {
+    expect(LIVE_TOOLS.map((t) => t.name)).toContain("submit_incident_report");
+  });
+
+  it("does NOT include LIVE_TOOLS names in FIELD_TOOLS (phone /field unaffected)", () => {
+    const liveNames = new Set(LIVE_TOOLS.map((t) => t.name));
+    const fieldNames = FIELD_TOOLS.map((t) => t.name);
+    for (const name of fieldNames) {
+      expect(liveNames.has(name)).toBe(false);
+    }
+  });
+
+  it("liveConfig with FIELD_TOOLS + LIVE_TOOLS includes update_runbook_step in tools", () => {
+    const ctx = FIXTURES["FIX-LEAK"];
+    const briefing = `${buildBriefing(ctx)}\n\n${GLASSES_VISION_RULES}`;
+    const config = liveConfig(briefing, [...FIELD_TOOLS, ...LIVE_TOOLS]);
+    const setup = liveSetupMessage("gemini-test", config) as { tools?: { functionDeclarations?: { name: string }[] }[] };
+    const names = setup.tools?.flatMap((t) => t.functionDeclarations?.map((f) => f.name) ?? []) ?? [];
+    expect(names).toContain("update_runbook_step");
+  });
+});
+
+describe("SIMULATION_RULES isolation", () => {
+  it("phone briefing (no simulation) does not contain SIMULATION MODE", () => {
+    const ctx = FIXTURES["FIX-LEAK"];
+    const briefing = buildBriefing(ctx);
+    expect(briefing).not.toContain("SIMULATION MODE");
+  });
+
+  it("glasses briefing with simulation === true contains SIMULATION MODE", () => {
+    const ctx = FIXTURES["FIX-LEAK"];
+    const briefing = `${buildBriefing(ctx)}\n\n${GLASSES_VISION_RULES}\n\n${SIMULATION_RULES}`;
+    expect(briefing).toContain("SIMULATION MODE");
+  });
+
+  it("glasses briefing without simulation flag does not contain SIMULATION MODE", () => {
+    const ctx = FIXTURES["FIX-LEAK"];
+    const briefing = `${buildBriefing(ctx)}\n\n${GLASSES_VISION_RULES}`;
+    expect(briefing).not.toContain("SIMULATION MODE");
   });
 });

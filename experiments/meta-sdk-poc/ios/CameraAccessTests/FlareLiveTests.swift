@@ -114,6 +114,69 @@ final class FlareLiveTests: XCTestCase {
     guard case .goAway("10s") = GeminiLiveClient.parse(Data(#"{"goAway":{"timeLeft":"10s"}}"#.utf8)).first else { return XCTFail("no goAway") }
   }
 
+  // MARK: - Live Incident Response event envelope
+
+  func testLiveEventEnvelopeHasRequiredFields() throws {
+    // Simulate what FlareLiveController.publishLive assembles.
+    let sessionId = "sess-abc-123"
+    let folder = "full_week"
+    let eventId = "EV-0001"
+    let seq = 5
+    let atMs = Int64(Date().timeIntervalSince1970 * 1000)
+
+    let event: [String: Any] = [
+      "id": UUID().uuidString,
+      "seq": seq,
+      "sessionId": sessionId,
+      "folder": folder,
+      "eventId": eventId,
+      "at": atMs,
+      "type": "transcript.final",
+      "payload": [
+        "role": "tech",
+        "text": "I see a wet flange",
+        "turnId": UUID().uuidString
+      ]
+    ]
+
+    let data = try JSONSerialization.data(withJSONObject: event)
+    let parsed = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+    XCTAssertEqual(parsed["sessionId"] as? String, sessionId)
+    XCTAssertEqual(parsed["eventId"] as? String, eventId)
+    XCTAssertEqual(parsed["folder"] as? String, folder)
+    XCTAssertEqual(parsed["seq"] as? Int, seq)
+    XCTAssertEqual(parsed["type"] as? String, "transcript.final")
+    XCTAssertNotNil(parsed["id"] as? String)
+    XCTAssertNotNil(parsed["at"] as? Int64)
+    let payload = try XCTUnwrap(parsed["payload"] as? [String: Any])
+    XCTAssertEqual(payload["role"] as? String, "tech")
+  }
+
+  func testRunbookUpdateEnvelopeHasTechnicianConfirmed() throws {
+    let event: [String: Any] = [
+      "id": UUID().uuidString,
+      "seq": 3,
+      "sessionId": "sess-1",
+      "folder": "full_week",
+      "eventId": "EV-0003",
+      "at": Int64(Date().timeIntervalSince1970 * 1000),
+      "type": "runbook.update",
+      "payload": [
+        "stepIndex": 0,
+        "status": "completed",
+        "technicianConfirmed": true,
+        "observation": "Breaker was tripped; reset performed"
+      ]
+    ]
+    let data = try JSONSerialization.data(withJSONObject: event)
+    let parsed = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    XCTAssertEqual(parsed["type"] as? String, "runbook.update")
+    let payload = try XCTUnwrap(parsed["payload"] as? [String: Any])
+    XCTAssertEqual(payload["technicianConfirmed"] as? Bool, true)
+    XCTAssertEqual(payload["stepIndex"] as? Int, 0)
+  }
+
   private static func image(width: Int, height: Int) -> UIImage {
     UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: {
       let f = UIGraphicsImageRendererFormat()

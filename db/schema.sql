@@ -53,8 +53,13 @@ CREATE TABLE IF NOT EXISTS incidents (
   visual_report jsonb,
   verdict       text,                       -- confirmed | dismissed
   resolution    text,                       -- what the technician did
+  dispatch      jsonb,                      -- OpenAlert snapshot for the On-call board after restart
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS dispatch jsonb;
+-- Live Incident Response: Gemini session transcript, runbook state, and report.
+-- messages.channel gains the value 'gemini' (text; no enum restriction).
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS live jsonb;
 
 CREATE TABLE IF NOT EXISTS outcomes (
   id        text PRIMARY KEY,               -- `${dataset}|${event_id}`

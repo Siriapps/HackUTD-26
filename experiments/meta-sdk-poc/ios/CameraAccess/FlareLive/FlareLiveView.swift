@@ -104,6 +104,7 @@ struct FlareLiveView: View {
       .pickerStyle(.segmented)
       Toggle("Barge-in (talk over Gemini)", isOn: $c.allowBargeIn)
       Toggle("Camera preview", isOn: $c.showPreview)
+      Toggle("Simulation mode (classroom demo)", isOn: $c.simulation)
     }
     .textFieldStyle(.roundedBorder)
     .font(.callout)
@@ -150,6 +151,7 @@ struct FlareLiveView: View {
       row("Gemini", controller.phase == .live ? (controller.geminiSpeaking ? "speaking" : "listening") : controller.model.ifBlank("—"))
       if !controller.eventLabel.isEmpty { row("Context", controller.eventLabel) }
       if controller.keyframes > 0 { row("Observation frames", "\(controller.keyframes) (memory only)") }
+      row("Mode", controller.simulation ? "Simulation (classroom)" : "Field (real equipment)")
     }
   }
 

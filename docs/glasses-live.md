@@ -118,8 +118,8 @@ Follow-up issue to open (not created from this branch):
 
 ## Server route
 
-`POST /api/gemini/glasses` with `{ "eventId": "FIX-LEAK", "folder"?: "full_week" }` returns
-`{ ok, token, model, apiVersion, wsUrl, setup, expiresAt, media, folder, event, eventLabel, incidents }`.
+`POST /api/gemini/glasses` with `{ "eventId": "FIX-LEAK", "folder"?: "full_week", "simulation"?: true }` returns
+`{ ok, token, model, apiVersion, wsUrl, setup, expiresAt, media, folder, event, eventLabel, incidents, sessionId, simulation }`.
 `GET /api/gemini/glasses?folder=` returns `{ configured, model, folder, events[] }` (fixtures plus ongoing events).
 
 The token is single-use, must open a session within 2 minutes, and lasts 30 minutes, with the model, briefing and tools
@@ -183,6 +183,78 @@ End releases camera/mic/network · phone camera unchanged.
 - Bluetooth Classic streaming is development-only (App Store needs MFi); Classic heap grows per stream (DAT #324): restart the app between long tests.
 - Backgrounding or locking the phone ends the call.
 - Reconnect after `goAway` starts a fresh conversation (same briefing).
-- `log_observation` keeps the note and keyframe in the app only; the web page's localStorage memory and visual report do not see them.
+- `log_observation` now **also** publishes to `/api/live/events` (note.append), so the web incident page receives observations in real time.
 - `confirm_plan` / `escalate` go wherever `/api/notify` sends (Photon, else Discord), exactly as from the web page. They were not exercised in testing to avoid posting to the team channel.
 - Echo-gate thresholds are first guesses; tune `EchoGate.bargeInRms` after the device run.
+
+---
+
+## Live Incident Response
+
+The Live Incident Response feature extends the glasses session with a web page at `/dispatch/[eventId]` that shows the real-time conversation, runbook progress, notes, and incident report as the technician works through the incident.
+
+### Architecture
+
+```
+iPhone FlareLiveController
+  ├─ POST /api/gemini/glasses { eventId, folder, simulation }
+  │      → server: build briefing + FIELD_TOOLS + LIVE_TOOLS + SIMULATION_RULES (if sim)
+  │      → returns: token + setup + sessionId + simulation flag
+  ├─ [Gemini Live WSS — audio + video — unchanged]
+  │
+  ├─ POST /api/live/events { id, seq, sessionId, folder, eventId, at, type, payload }
+  │      types: session.start, session.end, transcript.partial, transcript.final,
+  │             runbook.update, note.append, report.draft, report.ready, report.submit
+  │
+  └─ Ops browser ← GET /api/live/stream (SSE) → IncidentResponseView.tsx
+        ← GET /api/live/state (snapshot on first load / refresh)
+        ← POST /api/live/confirm (ops step confirm or report submit)
+```
+
+Media (audio/video) never passes through Next.js.
+
+### Additional Gemini tools (glasses sessions only)
+
+| Tool | Description |
+| --- | --- |
+| `update_runbook_step(step_index, status, observation?, technician_confirmed)` | Update runbook step state. `completed` requires `technician_confirmed: true`. |
+| `draft_incident_report(summary, observations[], actions[], unresolved[])` | Create a draft incident report from persisted evidence only. |
+| `submit_incident_report(technician_confirmed)` | Submit the drafted report. Requires explicit technician confirmation. |
+
+### Simulation mode
+
+Add `simulation: true` to the `POST /api/gemini/glasses` body (the iOS toggle defaults to `true`). This appends `SIMULATION_RULES` to the Gemini briefing, telling it to treat displayed laptop/screen imagery as the incident's field environment. The phone /field page (LiveSession.tsx) and normal GLASSES_VISION_RULES are **not** affected.
+
+The simulation badge appears in the incident page header and in the iOS Flare status metrics.
+
+### New server routes
+
+| Route | Description |
+| --- | --- |
+| `POST /api/live/events` | iOS ingest (requires `x-field-token`). Idempotent by `id`. |
+| `GET /api/live/stream?folder&eventId&afterSeq` | SSE fan-out; replays events since `afterSeq`. |
+| `GET /api/live/state?folder&eventId` | Snapshot for first paint and refresh. |
+| `POST /api/live/confirm` | Ops step confirm or report state transition. |
+
+### Persistence
+
+Tiger Data: `incidents.live` (jsonb) holds a full snapshot of the session (runbook, notes, report, maxSeq). `messages.channel='gemini'` stores final transcripts. Schema migration is idempotent: `ALTER TABLE incidents ADD COLUMN IF NOT EXISTS live jsonb`.
+
+### Physical test checklist (Live Incident Response)
+
+**Prerequisites:** Complete the standard glasses physical-device test first. Then:
+
+1. Load a folder with an ongoing pump failure or leak event (e.g. `full_week`). Text on-call to create a dispatch thread.
+2. On the laptop ops console, go to On-call → click the `EV-XXXX` link. The Live Incident Response page opens with an empty transcript and all runbook steps showing **Pending**.
+3. On the iPhone Flare Live screen: set the same Event ID and folder, verify **Simulation mode** is ON (default), tap **Start Live**.
+4. Hold the iPhone so the glasses can see the laptop screen showing a broken pipe / pump image.
+5. **Transcript appears:** both Tech and Gemini lines stream within ~1 second. Timestamps are shown. Partial lines pulse while Gemini is speaking.
+6. **Runbook progress:** say "I see the breaker panel, it looks like it tripped." The runbook panel should update step status to **In progress** as Gemini calls `update_runbook_step`. After explicitly confirming ("yes, I did that"), the step moves to **Completed**.
+7. **Blocked step:** when Gemini suggests a step that can't be done in the classroom (e.g. walk the right-of-way), say "I can't do that here." Gemini should call `update_runbook_step` with status `blocked` and an observation. The step chip turns red.
+8. **Notes:** Every `log_observation` and confirmed step appears in the **Technician Notes** section with timestamps.
+9. **Kill the SSE tab:** close the browser tab, reopen `/dispatch/EV-XXXX`. The transcript, runbook state, and notes must restore from Tiger (if `DATABASE_URL` is set) or from the hub (same process).
+10. **Incident report:** say "Please finalize the incident report." Gemini calls `draft_incident_report`. The right panel shows a **Draft** report with summary, observations, actions, and unresolved items. Click "Mark ready for review" (ops side). Then click "Submit report." The status badge changes to **Submitted**. Refresh the page — it stays **Submitted**.
+11. **Phone camera regression:** open `/field/EV-XXXX` in Safari, run a phone-camera session. No simulation overlay appears in the Gemini response. The Live Incident Response page shows no events from this session (different token, not a glasses session).
+12. **No audio/video to server:** confirm in the Next.js request log that no large POST bodies appear during the glasses session.
+
+Acceptance: EV-XXXX is clickable → page loads → glasses session publishes events → transcript live → runbook tracked → notes appear → report drafted/submitted → refresh restores state → phone camera unaffected.

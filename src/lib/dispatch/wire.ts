@@ -6,6 +6,7 @@ import { handleInbound } from "./engine";
 import { sendHandoff } from "./handoff";
 import { loadRoster } from "./roster";
 import { serverEvent } from "./server-data";
+import { hydrateDispatch } from "./hydrate";
 import { getAlert, otherSpaces, update } from "./store";
 import { crossPost, tick } from "./ticker";
 
@@ -57,6 +58,7 @@ export async function maybeScheduledHandoff(now = new Date()) {
 export function wireDispatch() {
   if (wiredHere) return;
   wiredHere = true;
+  void hydrateDispatch();
   if (g.__dispatchWire) {
     g.__dispatchWire.unsub();
     clearInterval(g.__dispatchWire.timer);

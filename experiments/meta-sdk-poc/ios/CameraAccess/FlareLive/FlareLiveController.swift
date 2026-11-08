@@ -62,6 +62,8 @@ final class FlareLiveController {
       if !showPreview { previewImage = nil }
     }
   }
+  /// Live Incident Response: simulation / classroom demo mode (default on for demos).
+  var simulation: Bool { didSet { defaults.set(simulation, forKey: "flare.simulation") } }
 
   // MARK: - Observable status
 
@@ -107,6 +109,12 @@ final class FlareLiveController {
   @ObservationIgnored private var observationFrames: [Data] = []
   @ObservationIgnored private var statTicks = 0
 
+  // Live Incident Response: monotonic seq counter and partial throttle state.
+  @ObservationIgnored private var liveSeq = 0
+  @ObservationIgnored private var currentTurnId: String = ""
+  @ObservationIgnored private var partialThrottleTask: Task<Void, Never>?
+  @ObservationIgnored private var lastPartialText = ""
+
   static let setupTimeout: Duration = .seconds(15)
   static let firstFrameTimeout: Duration = .seconds(20)
   static let maxReconnects = 3
@@ -119,6 +127,8 @@ final class FlareLiveController {
     micPath = GlassesMicPath(rawValue: defaults.string(forKey: "flare.micPath") ?? "") ?? .datPcm
     allowBargeIn = defaults.object(forKey: "flare.allowBargeIn") as? Bool ?? true
     showPreview = defaults.object(forKey: "flare.showPreview") as? Bool ?? true
+    // Simulation default: true so the demo is always ready on power-on.
+    simulation = defaults.object(forKey: "flare.simulation") as? Bool ?? true
     glasses = GlassesCapture(wearables: wearables)
     uplink = LiveUplink(sampler: FrameSampler(), converter: PCM16Converter(), player: player)
     configureUplink()
@@ -198,12 +208,23 @@ final class FlareLiveController {
 
     // 4. Session grant from the Night Shift server, then the Gemini socket.
     phase = .requestingSession
+    liveSeq = 0
+    currentTurnId = UUID().uuidString
     do {
-      let grant = try await backend.startSession(eventId: eventId.trimmingCharacters(in: .whitespaces), folder: folder.trimmingCharacters(in: .whitespaces))
+      let grant = try await backend.startSession(
+        eventId: eventId.trimmingCharacters(in: .whitespaces),
+        folder: folder.trimmingCharacters(in: .whitespaces),
+        simulation: simulation
+      )
       guard phase == .requestingSession else { return }
       self.grant = grant
       model = grant.model
-      eventLabel = "\(grant.eventId) · \(grant.eventLabel)"
+      eventLabel = "\(grant.eventId) · \(grant.eventLabel)\(grant.simulation ? " [SIM]" : "")"
+      // Publish session.start so the web page seeds the runbook.
+      await publishLive(grant: grant, type: "session.start", payload: [
+        "simulation": grant.simulation,
+        "category": (try? JSONSerialization.jsonObject(with: grant.eventJSON)) as? [String: Any] ?? [:]
+      ])
       try connect(grant)
     } catch {
       await abort("Could not start the Gemini session: \(error.localizedDescription)")
@@ -248,6 +269,10 @@ final class FlareLiveController {
   func end(_ reason: String) async {
     guard phase.isActive, phase != .ending else { return }
     phase = .ending
+    // Publish session.end before tearing down so the web page knows the session is over.
+    if let grant {
+      await publishLive(grant: grant, type: "session.end", payload: ["reason": reason])
+    }
     stopMedia()
     await glasses.stop(reason: "call ended")
     finishTeardown()
@@ -350,8 +375,15 @@ final class FlareLiveController {
     player.flush()
     let old = client
     do {
-      let next = try await backend.startSession(eventId: grant.eventId, folder: grant.folder)
+      // Reconnect keeps the same sessionId so the web page stays on one conversation.
+      let next = try await backend.startSession(
+        eventId: grant.eventId,
+        folder: grant.folder,
+        simulation: grant.simulation
+      )
       guard phase == .reconnecting else { return }
+      // Carry over the original sessionId so web hub session continuity is preserved.
+      // The new Gemini token is new but the incident session remains the same.
       self.grant = next
       try connect(next)
       old?.close()
@@ -385,16 +417,67 @@ final class FlareLiveController {
           keyframes = observationFrames.count
         }
         sys("Logged: \(text)")
+        // Also publish to the web incident page so notes pane updates.
+        await publishLive(grant: grant, type: "note.append", payload: [
+          "kind": "observation",
+          "text": text
+        ])
         response = ["result": "logged with a keyframe"]
+
       case "escalate":
         let reason = call.args["reason"] ?? ""
         sys("Escalating to ops: \(reason)")
         let r = await backend.notify(grant: grant, kind: "escalation", note: reason)
+        await publishLive(grant: grant, type: "note.append", payload: [
+          "kind": "escalation",
+          "text": reason
+        ])
         response = ["result": r.ok ? "ops notified: \(r.message)" : "dispatch unavailable (\(r.message)); logged locally"]
         scheduling = "INTERRUPT"
+
       case "get_past_incidents":
         response = ["incidents": grant.incidents.map { ["summary": $0.summary, "outcome": $0.outcome, "source": $0.source] }]
         scheduling = "INTERRUPT"
+
+      // ── Live Incident Response tools ──────────────────────────────────────
+      case "update_runbook_step":
+        let stepIndex = call.args["step_index"].flatMap { Int($0) } ?? -1
+        let status = call.args["status"] ?? "in_progress"
+        let observation = call.args["observation"]
+        let techConfirmed = call.args["technician_confirmed"] == "true"
+        sys("Runbook step \(stepIndex): \(status)")
+        var payload: [String: Any] = [
+          "stepIndex": stepIndex,
+          "status": status,
+          "technicianConfirmed": techConfirmed
+        ]
+        if let obs = observation { payload["observation"] = obs }
+        let result = await publishLive(grant: grant, type: "runbook.update", payload: payload)
+        response = ["result": result ? "step updated" : "update sent; server validation pending"]
+
+      case "draft_incident_report":
+        let summary = call.args["summary"] ?? ""
+        sys("Drafting incident report…")
+        let observations = call.args["observations"].map { $0.components(separatedBy: "\n") } ?? []
+        let actions = call.args["actions"].map { $0.components(separatedBy: "\n") } ?? []
+        let unresolved = call.args["unresolved"].map { $0.components(separatedBy: "\n") } ?? []
+        await publishLive(grant: grant, type: "report.draft", payload: [
+          "summary": summary,
+          "observations": observations,
+          "actions": actions,
+          "unresolved": unresolved
+        ])
+        response = ["result": "incident report drafted; awaiting technician confirmation to submit"]
+
+      case "submit_incident_report":
+        let techConfirmed = call.args["technician_confirmed"] == "true"
+        sys("Submitting incident report…")
+        await publishLive(grant: grant, type: "report.submit", payload: [
+          "technician_confirmed": techConfirmed
+        ])
+        response = ["result": techConfirmed ? "report submitted" : "technician confirmation required; not yet submitted"]
+        scheduling = "INTERRUPT"
+
       default:
         response = ["error": "unknown tool \(call.name)"]
       }
@@ -604,17 +687,67 @@ final class FlareLiveController {
   private func append(_ role: Role, _ text: String) {
     if let i = lines.lastIndex(where: { $0.role == role }), lines[i].open {
       lines[i].text += text
-      return
+    } else {
+      lineId += 1
+      lines.append(Line(id: lineId, role: role, text: text, open: true))
+      // Start a new turn ID for each new utterance.
+      currentTurnId = UUID().uuidString
     }
-    lineId += 1
-    lines.append(Line(id: lineId, role: role, text: text, open: true))
+    // Throttle partial publishes (~200 ms) to avoid flooding the server.
+    let turnId = currentTurnId
+    let accText = lines.last(where: { $0.role == role && $0.open })?.text ?? text
+    partialThrottleTask?.cancel()
+    partialThrottleTask = Task { [weak self] in
+      try? await Task.sleep(for: .milliseconds(200))
+      guard !Task.isCancelled, let self, let grant = self.grant else { return }
+      let liveRole = role == .tech ? "tech" : "gemini"
+      await self.publishLive(grant: grant, type: "transcript.partial", payload: [
+        "role": liveRole,
+        "text": accText,
+        "turnId": turnId
+      ])
+    }
   }
 
   private func closeOpen(_ role: Role?) {
     for i in lines.indices where lines[i].open && (role == nil || lines[i].role == role) {
       lines[i].open = false
-      trace("\(lines[i].role == .tech ? "TECH" : "GEMINI") \(lines[i].text)")
+      let text = lines[i].text
+      let liveRole = lines[i].role == .tech ? "tech" : "gemini"
+      trace("\(lines[i].role == .tech ? "TECH" : "GEMINI") \(text)")
+      // Publish final transcript to the web incident page.
+      let turnId = currentTurnId
+      guard let grant else { continue }
+      Task { [weak self] in
+        await self?.publishLive(grant: grant, type: "transcript.final", payload: [
+          "role": liveRole,
+          "text": text,
+          "turnId": turnId
+        ])
+      }
     }
+  }
+
+  // MARK: - Live Incident Response publishing
+
+  /// Publish a LiveEvent to POST /api/live/events. Failures are logged locally only;
+  /// they never interrupt the Gemini socket.
+  @discardableResult
+  private func publishLive(grant: FlareBackend.Grant, type: String, payload: [String: Any]) async -> Bool {
+    liveSeq += 1
+    let event: [String: Any] = [
+      "id": UUID().uuidString,
+      "seq": liveSeq,
+      "sessionId": grant.sessionId,
+      "folder": grant.folder,
+      "eventId": grant.eventId,
+      "at": Int64(Date().timeIntervalSince1970 * 1000),
+      "type": type,
+      "payload": payload
+    ]
+    let ok = await backend?.publish(grant: grant, liveEvent: event) ?? false
+    if !ok { sys("[live] could not publish \(type) to the server (non-fatal)") }
+    return ok
   }
 }
 

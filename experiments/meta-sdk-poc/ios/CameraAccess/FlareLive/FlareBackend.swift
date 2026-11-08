@@ -1,9 +1,11 @@
 /*
  * Copyright (c) 2026 Avon Night Shift / HackUTD-26
  *
- * The two Avon Night Shift endpoints the glasses use: POST /api/gemini/glasses mints a Live
- * session (token + setup frame + event context), and POST /api/notify carries confirm/escalate
- * tool calls to ops exactly as the web /field page does.
+ * The Avon Night Shift endpoints the glasses use:
+ *   POST /api/gemini/glasses — mints a Live session (token + setup frame + event context + sessionId).
+ *   POST /api/notify — confirm/escalate tool calls to ops (same body as the web /field page).
+ *   POST /api/live/events — Live Incident Response ingest: transcript finals, runbook updates,
+ *     notes, session lifecycle.  Media (audio/video) is never sent here.
  */
 
 import Foundation
@@ -32,6 +34,10 @@ struct FlareBackend: Sendable {
     let videoJpegQuality: Double
     let inputSampleRate: Int
     let outputSampleRate: Int
+    /// Stable session identifier for the whole glasses call (survives Gemini reconnects).
+    let sessionId: String
+    /// Whether simulation / classroom demo mode is active.
+    let simulation: Bool
 
     var socketURL: URL? { URL(string: "\(wsUrl)?access_token=\(token)") }
   }
@@ -51,8 +57,8 @@ struct FlareBackend: Sendable {
     self.deviceToken = deviceToken.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
-  func startSession(eventId: String, folder: String) async throws -> Grant {
-    var body: [String: Any] = ["eventId": eventId]
+  func startSession(eventId: String, folder: String, simulation: Bool) async throws -> Grant {
+    var body: [String: Any] = ["eventId": eventId, "simulation": simulation]
     if !folder.isEmpty { body["folder"] = folder }
     let json = try await post("api/gemini/glasses", body: body)
     guard json["ok"] as? Bool == true else {
@@ -80,7 +86,9 @@ struct FlareBackend: Sendable {
       videoMaxEdge: media["videoMaxEdge"] as? Int ?? 768,
       videoJpegQuality: media["videoJpegQuality"] as? Double ?? 0.6,
       inputSampleRate: media["inputSampleRate"] as? Int ?? 16000,
-      outputSampleRate: media["outputSampleRate"] as? Int ?? 24000
+      outputSampleRate: media["outputSampleRate"] as? Int ?? 24000,
+      sessionId: json["sessionId"] as? String ?? UUID().uuidString,
+      simulation: json["simulation"] as? Bool ?? simulation
     )
   }
 
@@ -95,6 +103,21 @@ struct FlareBackend: Sendable {
       return (json["ok"] as? Bool ?? false, message)
     } catch {
       return (false, error.localizedDescription)
+    }
+  }
+
+  /**
+   Publish a structured Live Incident event to POST /api/live/events.
+   Failures are fire-and-forget: the caller logs the outcome but never drops the Gemini socket.
+   The event must include sessionId, folder, eventId — these are taken from the Grant.
+   */
+  @discardableResult
+  func publish(grant: Grant, liveEvent: [String: Any]) async -> Bool {
+    do {
+      let json = try await post("api/live/events", body: liveEvent, allowErrorStatus: true)
+      return json["ok"] as? Bool ?? false
+    } catch {
+      return false
     }
   }
 

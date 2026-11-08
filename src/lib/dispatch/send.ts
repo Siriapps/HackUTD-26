@@ -59,6 +59,10 @@ export async function sendAlert(input: SendAlertInput): Promise<SendResult> {
     return { ok: true, sent: true, to, messageId: msg.id, text, repeat };
   } catch (err) {
     const e = err as PhotonError;
+    const a = upsertAlert({ eventId: event.id, folder, asOf: input.asOf, spaceId: "local", handle: to, sentAt: Date.now() });
+    if (!a.log.some((l) => l.text === text || l.text.startsWith(text))) {
+      update(a.key, {}, { at: Date.now(), dir: "out", text: `${text}\n\n(not sent: ${e.message})`, by: "ops" });
+    }
     return { ok: false, status: 502, error: e.message, code: e.code, text };
   }
 }

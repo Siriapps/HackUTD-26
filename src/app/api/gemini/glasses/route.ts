@@ -1,15 +1,26 @@
 import { NextResponse, connection } from "next/server";
+import { randomUUID } from "crypto";
 import { serverAnalysis, serverDataset, serverFolders } from "@/lib/dispatch/server-data";
 import { eventContext, type EventContext } from "@/lib/events";
 import { CATEGORY_LABEL, FIELD_TOOLS, buildBriefing, similar } from "@/lib/memory";
 import { FIXTURES } from "@/lib/memory/fixture";
 import { API_VERSION, LIVE_MODEL, gemini, liveConfig, notConfigured } from "../gemini";
 import { GLASSES_MEDIA, GLASSES_VISION_RULES, deviceAllowed, liveSetupMessage, liveWebSocketUrl } from "./session";
+import { LIVE_TOOLS } from "@/lib/live/live-tools";
+import { SIMULATION_RULES } from "@/lib/live/simulation";
 
 /**
- * Live session for the native Meta glasses client (experiments/meta-sdk-poc/ios). The event context, briefing,
- * tools and token are built here from the same code the /field page runs in the browser; the phone then talks to
- * Gemini directly over WebSocket, so no camera or microphone data passes through this server.
+ * Live session for the native Meta glasses client (experiments/meta-sdk-poc/ios). The event
+ * context, briefing, tools and token are built here from the same code the /field page runs in
+ * the browser; the phone then talks to Gemini directly over WebSocket, so no camera or
+ * microphone data passes through this server.
+ *
+ * Changes vs original:
+ * - body.simulation === true appends SIMULATION_RULES to the briefing.
+ * - LIVE_TOOLS (update_runbook_step, draft_incident_report, submit_incident_report) are always
+ *   included for glasses sessions so the web incident page can track runbook progress.
+ * - A sessionId (UUID) is generated and returned; iOS includes it on every live event.
+ * - body.simulation is returned on the grant so iOS can persist and display it.
  */
 
 const forbidden = () => NextResponse.json({ ok: false, reason: "forbidden: send x-field-token (FIELD_DEVICE_TOKEN)" }, { status: 403 });
@@ -45,16 +56,28 @@ export async function GET(req: Request) {
   });
 }
 
-/** Body: { eventId: string, folder?: string }. Returns a single-use token plus the exact `setup` frame to send. */
+/**
+ * Body: { eventId: string, folder?: string, simulation?: boolean }
+ * Returns: token + setup frame + sessionId + simulation flag
+ *
+ * simulation defaults to false. When true, SIMULATION_RULES are appended to the briefing so
+ * Gemini treats displayed laptop imagery as the incident's visual evidence.
+ */
 export async function POST(req: Request) {
   if (!deviceAllowed(req)) return forbidden();
   const ai = gemini();
   if (!ai) return notConfigured();
-  const body = (await req.json().catch(() => null)) as { eventId?: unknown; folder?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as {
+    eventId?: unknown;
+    folder?: unknown;
+    simulation?: unknown;
+  } | null;
   if (!body || typeof body.eventId !== "string" || !body.eventId.trim()) {
     return NextResponse.json({ ok: false, reason: "eventId (string) is required" }, { status: 400 });
   }
   const folder = typeof body.folder === "string" && body.folder.trim() ? body.folder.trim() : undefined;
+  const simulation = body.simulation === true;
+
   let ctx: EventContext | null;
   try {
     ctx = await resolveContext(body.eventId.trim(), folder);
@@ -64,9 +87,21 @@ export async function POST(req: Request) {
   if (!ctx) return NextResponse.json({ ok: false, reason: `No event ${body.eventId}${folder ? ` in ${folder}` : ""}` }, { status: 404 });
 
   const incidents = similar(ctx.event, ctx);
-  const briefing = `${buildBriefing(ctx, incidents)}\n\n${GLASSES_VISION_RULES}`;
-  const config = liveConfig(briefing, FIELD_TOOLS);
+
+  // Build briefing: always include glasses vision rules; append simulation overlay only when requested.
+  let briefingText = `${buildBriefing(ctx, incidents)}\n\n${GLASSES_VISION_RULES}`;
+  if (simulation) {
+    briefingText += `\n\n${SIMULATION_RULES}`;
+  }
+
+  // Glasses sessions get FIELD_TOOLS + LIVE_TOOLS.
+  const allTools = [...FIELD_TOOLS, ...LIVE_TOOLS];
+  const config = liveConfig(briefingText, allTools);
   const expiresAt = new Date(Date.now() + 30 * 60_000).toISOString();
+
+  // Stable session identifier for the full glasses call (survives Gemini reconnects).
+  const sessionId = randomUUID();
+
   try {
     const token = await ai.authTokens.create({
       config: {
@@ -90,6 +125,9 @@ export async function POST(req: Request) {
       event: ctx.event,
       eventLabel: `${CATEGORY_LABEL[ctx.event.category]} on ${ctx.event.asset}`,
       incidents: incidents.map((i) => ({ summary: i.summary, outcome: i.outcome, source: i.source })),
+      /** New fields for Live Incident Response */
+      sessionId,
+      simulation,
     });
   } catch (err) {
     return NextResponse.json({ ok: false, reason: `Gemini token: ${(err as Error).message}` }, { status: 502 });

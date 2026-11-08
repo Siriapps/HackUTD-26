@@ -88,11 +88,9 @@ export function DispatchBoard() {
         </header>
         {threads && !threads.length && (
           <p className="px-4 py-6 text-sm text-ink-2">
-            Nothing dispatched yet. Press <span className="text-ink-1">Dispatch</span> on an alert in the{" "}
-            <Link href="/" className="underline">
-              dashboard
-            </Link>{" "}
-            to text the on-call tech.
+            Nothing dispatched yet. Press Play on the board (auto-text on) or tap{" "}
+            <span className="text-ink-1">Text on-call</span> on an alert. Threads survive a restart when Tiger Data is
+            configured.
           </p>
         )}
         <ul className="divide-y divide-line-1">
@@ -165,7 +163,13 @@ function ThreadRow({ t, event, onChanged }: { t: Thread; event?: Event; onChange
   return (
     <li className="px-4 py-3">
       <div className="flex items-center gap-2 flex-wrap min-w-0">
-        <span className="num font-semibold text-ink-1">{t.eventId}</span>
+        <Link
+          href={`/dispatch/${t.eventId}?folder=${encodeURIComponent(t.folder)}`}
+          className="num font-semibold text-ink-1 hover:underline"
+          title="Open live incident view"
+        >
+          {t.eventId}
+        </Link>
         {event && (
           <>
             <Link href={`/facility/${event.facility}`} className="num text-ink-2 hover:underline truncate">

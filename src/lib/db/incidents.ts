@@ -36,11 +36,41 @@ export function annotateIncident(folder: string, eventId: string, patch: { verdi
   );
 }
 
-/** One text, out or in. */
+const UPSERT_DISPATCH = `INSERT INTO incidents (id, dataset, event_id, system_id, facility_id, asset_id, category, onset_ts, status, dispatch, updated_at)
+       VALUES ($1,$2,$3,'','','','unknown', to_timestamp($4::double precision / 1000.0), $5, $6::jsonb, now())
+       ON CONFLICT (id) DO UPDATE SET dispatch = EXCLUDED.dispatch, status = COALESCE(NULLIF($5, ''), incidents.status), updated_at = now()`;
+
+async function upsertDispatchRow(a: { folder: string; eventId: string; sentAt: number; status: string }) {
+  const params = [id(a.folder, a.eventId), a.folder, a.eventId, a.sentAt, a.status, JSON.stringify(a)];
+  try {
+    await query(UPSERT_DISPATCH, params);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!/dispatch/.test(msg)) throw e;
+    await query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS dispatch jsonb`);
+    await query(UPSERT_DISPATCH, params);
+  }
+}
+
+/** Full On-call thread snapshot. Creates a stub incident so messages.incident_id FK succeeds. */
+export function saveDispatch(a: { folder: string; eventId: string; sentAt: number; status: string }): void {
+  if (!dbConfigured()) return;
+  swallow(upsertDispatchRow(a));
+}
+
+/** One text, out or in. Stub incident first (does not clobber dispatch jsonb) so the FK cannot race. */
 export function logMessage(m: { folder: string; eventId: string; channel: string; direction: "out" | "in"; recipient?: string; body: string; payload?: unknown }): void {
   if (!dbConfigured()) return;
   swallow(
-    query(`INSERT INTO messages (incident_id, channel, direction, recipient, body, payload) VALUES ($1,$2,$3,$4,$5,$6::jsonb)`, [id(m.folder, m.eventId), m.channel, m.direction, m.recipient ?? null, m.body, m.payload ? JSON.stringify(m.payload) : null]),
+    (async () => {
+      await query(
+        `INSERT INTO incidents (id, dataset, event_id, system_id, facility_id, asset_id, category, onset_ts, status, updated_at)
+         VALUES ($1,$2,$3,'','','','unknown', now(), 'awaiting', now())
+         ON CONFLICT (id) DO NOTHING`,
+        [id(m.folder, m.eventId), m.folder, m.eventId],
+      );
+      await query(`INSERT INTO messages (incident_id, channel, direction, recipient, body, payload) VALUES ($1,$2,$3,$4,$5,$6::jsonb)`, [id(m.folder, m.eventId), m.channel, m.direction, m.recipient ?? null, m.body, m.payload ? JSON.stringify(m.payload) : null]);
+    })(),
   );
 }
 
@@ -48,6 +78,102 @@ export function logMessage(m: { folder: string; eventId: string; channel: string
 export function logTicket(folder: string, eventId: string, provider: string, externalId: string, url: string, assignee?: string): void {
   if (!dbConfigured()) return;
   swallow(query(`INSERT INTO tickets (incident_id, provider, external_id, url, assignee, state) VALUES ($1,$2,$3,$4,$5,'open')`, [id(folder, eventId), provider, externalId, url, assignee ?? null]));
+}
+
+export interface DispatchThreadRow {
+  id: string;
+  dataset: string;
+  event_id: string;
+  status: string;
+  dispatch: unknown;
+  messages: { ts: number; dir: string; text: string; recipient: string | null; payload: { intent?: string; by?: string; spaceId?: string } | null }[];
+}
+
+/** On-call threads (dispatch snapshot + messages), for hydrating the in-memory board after a restart. */
+export async function listDispatchThreads(): Promise<DispatchThreadRow[]> {
+  if (!dbConfigured()) return [];
+  const sql = `SELECT i.id, i.dataset, i.event_id, i.status, i.dispatch,
+            COALESCE(json_agg(json_build_object(
+              'ts', (extract(epoch FROM m.ts) * 1000)::bigint,
+              'dir', m.direction,
+              'text', m.body,
+              'recipient', m.recipient,
+              'payload', m.payload
+            ) ORDER BY m.ts) FILTER (WHERE m.id IS NOT NULL), '[]'::json) AS messages
+     FROM incidents i
+     LEFT JOIN messages m ON m.incident_id = i.id
+     WHERE i.dispatch IS NOT NULL OR EXISTS (SELECT 1 FROM messages mm WHERE mm.incident_id = i.id)
+     GROUP BY i.id
+     ORDER BY i.updated_at DESC`;
+  try {
+    return await query<DispatchThreadRow>(sql);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!/dispatch/.test(msg)) throw e;
+    return query<DispatchThreadRow>(
+      `SELECT i.id, i.dataset, i.event_id, i.status, NULL::jsonb AS dispatch,
+              COALESCE(json_agg(json_build_object(
+                'ts', (extract(epoch FROM m.ts) * 1000)::bigint,
+                'dir', m.direction,
+                'text', m.body,
+                'recipient', m.recipient,
+                'payload', m.payload
+              ) ORDER BY m.ts) FILTER (WHERE m.id IS NOT NULL), '[]'::json) AS messages
+       FROM incidents i
+       JOIN messages m ON m.incident_id = i.id
+       GROUP BY i.id
+       ORDER BY i.updated_at DESC`,
+    );
+  }
+}
+
+// ─── Live Incident Response persistence ──────────────────────────────────────
+
+import type { IncidentLive } from "@/lib/live/types";
+
+/**
+ * Persist the live session snapshot (runbook state, notes, report, maxSeq).
+ * Creates a stub row if the incident never reached the board, so the FK from messages works.
+ * Silent no-op when DATABASE_URL is not configured.
+ */
+export function saveLive(folder: string, eventId: string, live: IncidentLive): void {
+  if (!dbConfigured()) return;
+  swallow(
+    (async () => {
+      await query(
+        `INSERT INTO incidents (id, dataset, event_id, system_id, facility_id, asset_id, category, onset_ts, status, live, updated_at)
+         VALUES ($1,$2,$3,'','','','unknown', now(), 'ongoing', $4::jsonb, now())
+         ON CONFLICT (id) DO UPDATE SET live = $4::jsonb, updated_at = now()`,
+        [id(folder, eventId), folder, eventId, JSON.stringify(live)],
+      );
+    })(),
+  );
+}
+
+/**
+ * Load the persisted live snapshot. Returns null when DATABASE_URL is not configured
+ * or the row has no live data (the hub will serve from memory in that case).
+ */
+export async function loadLive(folder: string, eventId: string): Promise<IncidentLive | null> {
+  if (!dbConfigured()) return null;
+  const rows = await query<{ live: unknown }>(
+    `SELECT live FROM incidents WHERE id = $1 AND live IS NOT NULL`,
+    [id(folder, eventId)],
+  );
+  if (!rows.length || !rows[0].live) return null;
+  return rows[0].live as IncidentLive;
+}
+
+// ─── Load final transcript messages for a session ─────────────────────────────
+
+export async function loadLiveMessages(folder: string, eventId: string): Promise<{ ts: number; dir: string; body: string; payload: unknown }[]> {
+  if (!dbConfigured()) return [];
+  return query<{ ts: number; dir: string; body: string; payload: unknown }>(
+    `SELECT (extract(epoch FROM ts) * 1000)::bigint AS ts, direction AS dir, body, payload
+     FROM messages WHERE incident_id = $1 AND channel = 'gemini'
+     ORDER BY ts ASC`,
+    [id(folder, eventId)],
+  );
 }
 
 /** Everything the database remembers, newest first, for the analytics page. */
