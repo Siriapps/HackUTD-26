@@ -1,12 +1,15 @@
 import { NextResponse, connection } from "next/server";
 import { randomUUID } from "crypto";
-import { serverAnalysis, serverDataset, serverFolders } from "@/lib/dispatch/server-data";
-import { eventContext, type EventContext } from "@/lib/events";
-import { CATEGORY_LABEL, FIELD_TOOLS, buildBriefing, similar } from "@/lib/memory";
+import { serverAnalysis, serverFolders } from "@/lib/dispatch/server-data";
+import type { EventContext } from "@/lib/events";
+import { appendLiveLine } from "@/lib/dispatch/store";
 import { FIXTURES } from "@/lib/memory/fixture";
+import { findEventContext, normalizeEventId } from "@/lib/live/lookup";
+import { buildLiveRunbookContext } from "@/lib/live/runbook-context";
+import { CATEGORY_LABEL, FIELD_TOOLS, buildBriefing, similar } from "@/lib/memory";
 import { API_VERSION, LIVE_MODEL, gemini, liveConfig, notConfigured } from "../gemini";
 import { GLASSES_MEDIA, GLASSES_VISION_RULES, deviceAllowed, liveSetupMessage, liveWebSocketUrl } from "./session";
-import { LIVE_TOOLS } from "@/lib/live/live-tools";
+import { LIVE_TOOLS, LIVE_TOOL_RULES } from "@/lib/live/live-tools";
 import { SIMULATION_RULES } from "@/lib/live/simulation";
 
 /**
@@ -28,16 +31,6 @@ const forbidden = () => NextResponse.json({ ok: false, reason: "forbidden: send 
 async function defaultFolder(): Promise<string | undefined> {
   const folders = await serverFolders();
   return folders.includes("test") ? "test" : folders[0];
-}
-
-async function resolveContext(eventId: string, folder?: string): Promise<EventContext | null> {
-  const fixture = FIXTURES[eventId];
-  if (fixture) return fixture;
-  const f = folder || (await defaultFolder());
-  if (!f) return null;
-  const [dataset, analysis] = await Promise.all([serverDataset(f), serverAnalysis(f)]);
-  const event = analysis.events.find((e) => e.id === eventId);
-  return event ? eventContext(dataset, analysis, event) : null;
 }
 
 /** Status plus the events the app can open: `?folder=` or the same default folder as /field. */
@@ -78,18 +71,37 @@ export async function POST(req: Request) {
   const folder = typeof body.folder === "string" && body.folder.trim() ? body.folder.trim() : undefined;
   const simulation = body.simulation === true;
 
+  // The technician typed an event id on the phone: attach to that event when any dataset has it, otherwise this is a
+  // NEW incident and gets its own thread (ad-hoc, no telemetry) so the live page, runbook and notes still work.
+  const eventId = normalizeEventId(body.eventId);
   let ctx: EventContext | null;
   try {
-    ctx = await resolveContext(body.eventId.trim(), folder);
+    ctx = await findEventContext(eventId, folder);
   } catch (err) {
-    return NextResponse.json({ ok: false, reason: `could not load ${folder ?? "the dataset"}: ${(err as Error).message}` }, { status: 404 });
+    return NextResponse.json({ ok: false, reason: `could not look up ${eventId}: ${(err as Error).message}` }, { status: 500 });
   }
-  if (!ctx) return NextResponse.json({ ok: false, reason: `No event ${body.eventId}${folder ? ` in ${folder}` : ""}` }, { status: 404 });
 
-  const incidents = similar(ctx.event, ctx);
+  const adhocFolder = folder ?? (await defaultFolder()) ?? "adhoc";
+  const incidents = ctx ? similar(ctx.event, ctx) : [];
+  const resolvedFolder = ctx ? ctx.folder : adhocFolder;
+  if (!ctx) {
+    try {
+      appendLiveLine(adhocFolder, eventId, { at: Date.now(), dir: "out", text: `New incident ${eventId} opened from the glasses. No telemetry on record; using the general runbook.`, by: "system" });
+    } catch (err) {
+      console.error("[glasses] could not open thread:", err instanceof Error ? err.message : err);
+    }
+  }
 
-  // Build briefing: always include glasses vision rules; append simulation overlay only when requested.
-  let briefingText = `${buildBriefing(ctx, incidents)}\n\n${GLASSES_VISION_RULES}`;
+  const identity = ctx
+    ? buildBriefing(ctx, incidents)
+    : [
+        `You are Avon's night-shift field assistant on a live call with a lone technician at night. They are reporting a NEW incident, ${eventId}, that is not in the monitoring system: there are no sensor readings, countdown, plan or past incidents for it.`,
+        "Rules: be concrete and brief. Short sentences, one instruction at a time. Never invent readings, asset ids or history. Safety first: lockout/tagout before anything is touched. If something is not stated by the technician or visible on camera, say you do not know and ask.",
+        "Tools: log_observation for anything they report or you see; escalate when they need help; confirm_plan is not applicable here.",
+      ].join("\n");
+
+  // Briefing = identity/context + the deterministic, event-tailored runbook + glasses and tool rules (+ simulation overlay).
+  let briefingText = `${identity}\n\n${buildLiveRunbookContext(ctx, eventId)}\n\n${GLASSES_VISION_RULES}\n\n${LIVE_TOOL_RULES}`;
   if (simulation) {
     briefingText += `\n\n${SIMULATION_RULES}`;
   }
@@ -121,9 +133,10 @@ export async function POST(req: Request) {
       setup: liveSetupMessage(LIVE_MODEL, config),
       expiresAt,
       media: GLASSES_MEDIA,
-      folder: ctx.folder,
-      event: ctx.event,
-      eventLabel: `${CATEGORY_LABEL[ctx.event.category]} on ${ctx.event.asset}`,
+      folder: resolvedFolder,
+      event: ctx ? ctx.event : { id: eventId, category: "unknown", facility: "", asset: "", status: "ongoing", evidence: [], adhoc: true },
+      eventLabel: ctx ? `${CATEGORY_LABEL[ctx.event.category]} on ${ctx.event.asset}` : `New incident ${eventId}`,
+      known: !!ctx,
       incidents: incidents.map((i) => ({ summary: i.summary, outcome: i.outcome, source: i.source })),
       /** New fields for Live Incident Response */
       sessionId,

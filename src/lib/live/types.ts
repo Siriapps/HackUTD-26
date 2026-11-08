@@ -39,7 +39,10 @@ export interface LiveEvent {
 
 export interface SessionStartPayload {
   simulation: boolean;
+  /** Incident category (RUNBOOKS key). The server also resolves it from the event id and overrides bad values. */
   category: string;
+  /** Added by the server before fan-out so browsers can seed the runbook pane without a refetch. */
+  runbook?: RunbookState;
 }
 
 export interface TranscriptPayload {
@@ -62,7 +65,7 @@ export interface RunbookUpdatePayload {
 }
 
 export interface NoteAppendPayload {
-  kind: "observation" | "confirmation" | "blocked" | "system";
+  kind: NoteKind;
   text: string;
 }
 
@@ -95,9 +98,11 @@ export interface RunbookState {
 
 // ─── Incident live snapshot (incidents.live jsonb) ───────────────────────────
 
+export type NoteKind = "observation" | "confirmation" | "blocked" | "system" | "escalation";
+
 export interface NoteEntry {
   at: number;
-  kind: "observation" | "confirmation" | "blocked" | "system";
+  kind: NoteKind;
   text: string;
 }
 

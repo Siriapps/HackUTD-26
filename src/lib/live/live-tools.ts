@@ -6,6 +6,22 @@
  */
 import { Type, type FunctionDeclaration } from "@google/genai";
 
+/**
+ * Appended to every glasses briefing (not only simulation). The operator's screen is driven by these tool calls:
+ * speaking a step aloud changes nothing on it.
+ */
+export const LIVE_TOOL_RULES = `
+LIVE INCIDENT TRACKING (mandatory, every call): the operator is watching a runbook, a notes pane and a report pane that ONLY change when you call tools. Saying something aloud does not update them.
+- The runbook steps are numbered 1..N in the briefing. Tool step_index is 0-based: step 1 is step_index 0, step 2 is 1, and so on.
+- When you start walking the technician through a step, call update_runbook_step with status in_progress BEFORE you speak the instruction. Do this for every step, one at a time.
+- Call log_observation for every fact the technician reports or you can see (readings, fault codes, wet or stained pipe, valve positions). Use their words; one or two sentences; do not wait to be asked.
+- When the technician says a step is done, call update_runbook_step with status completed and technician_confirmed true. Never mark completed on your own. If a step cannot be done, call it with status blocked and a short observation giving the reason.
+- When the technician asks to finalize, close out, wrap up or write the incident report, call draft_incident_report IMMEDIATELY in that turn, using only what was observed or done in this call (pass empty lists for anything unknown; never refuse and never say you cannot write reports: you can, through this tool). Then say in one sentence what the draft covers and ask whether to submit it.
+- Call submit_incident_report with technician_confirmed true only after the technician clearly says yes to submitting. If they hesitate, do not submit.
+- Tool results tell you whether the screen accepted the change. If a result says a step was not accepted or confirmation is needed, tell the technician plainly and ask again.
+- Never answer a closeout request with generic statements such as being a language model; use the tools.
+`.trim();
+
 export const LIVE_TOOLS: FunctionDeclaration[] = [
   {
     name: "update_runbook_step",
@@ -41,8 +57,8 @@ export const LIVE_TOOLS: FunctionDeclaration[] = [
     name: "draft_incident_report",
     description:
       "Create a draft incident response report from observed evidence. " +
-      "Only call when asked to close out or draft the final report. " +
-      "Only include observations that were actually made — do not fabricate.",
+      "Call this immediately when the technician asks to finalize, close out or write the incident report; do not refuse. " +
+      "Only include observations that were actually made — do not fabricate. Omit any list you have nothing for; the server fills it from the logged notes and runbook.",
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -66,7 +82,7 @@ export const LIVE_TOOLS: FunctionDeclaration[] = [
           description: "Issues that remain unresolved after this session.",
         },
       },
-      required: ["summary", "observations", "actions", "unresolved"],
+      required: ["summary"],
     },
   },
   {

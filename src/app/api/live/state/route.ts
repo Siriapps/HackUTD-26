@@ -2,14 +2,14 @@
  * GET /api/live/state?folder=&eventId=
  *
  * Returns a LiveSnapshot for first paint and refresh restoration.
- * Merges Tiger-persisted data with any in-process hub memory.
+ * The in-memory hub snapshot is authoritative; Tiger-persisted data fills in after a restart.
  * Never prerendered (uses `connection()`).
  */
 import { connection } from "next/server";
 import { NextResponse } from "next/server";
 import { loadLive, loadLiveMessages } from "@/lib/db/incidents";
-import { getLog, getMaxSeq } from "@/lib/live/hub";
-import type { LiveSnapshot, TranscriptLine } from "@/lib/live/types";
+import { getLive, getLog, getMaxSeq } from "@/lib/live/hub";
+import type { IncidentLive, LiveSnapshot, TranscriptLine } from "@/lib/live/types";
 
 export async function GET(req: Request) {
   await connection();
@@ -22,14 +22,20 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "eventId required" }, { status: 400 });
   }
 
-  // 1. Try hub (fastest, in-memory).
+  // 1. Hub (fastest, in-memory).
   const hubLog = getLog(folder, eventId);
   const hubMaxSeq = getMaxSeq(folder, eventId);
 
-  // 2. Merge with Tiger-persisted snapshot.
-  const persisted = await loadLive(folder, eventId);
+  // 2. Live snapshot: memory first, Tiger after a restart. A DB error must not blank the page.
+  let live: IncidentLive | null = getLive(folder, eventId);
+  if (!live) {
+    live = await loadLive(folder, eventId).catch((err) => {
+      console.error("[live/state] loadLive failed:", err instanceof Error ? err.message : err);
+      return null;
+    });
+  }
 
-  // 3. Build transcript lines from hub final events (partials excluded from hub log).
+  // 3. Transcript lines from hub final events (partials excluded from the hub log).
   const lines: TranscriptLine[] = hubLog
     .filter((e) => e.type === "transcript.final")
     .map((e) => {
@@ -43,30 +49,30 @@ export async function GET(req: Request) {
       };
     });
 
-  // If hub has no lines (e.g. after restart), try Tiger messages.
+  // If the hub has no lines (e.g. after restart), try Tiger messages.
   let dbLines: TranscriptLine[] = [];
-  if (!lines.length && eventId) {
-    const msgs = await loadLiveMessages(folder, eventId);
-    dbLines = msgs.map((m) => {
-      const p = m.payload as { sessionId?: string; seq?: number; role?: string; turnId?: string } | null;
+  if (!lines.length) {
+    const msgs = await loadLiveMessages(folder, eventId).catch(() => []);
+    dbLines = msgs.map((m, i) => {
+      const p = m.payload as { sessionId?: string; seq?: number; role?: string; turnId?: string; id?: string } | null;
       return {
-        id: `msg-${m.ts}`,
-        role: (m.dir === "in" ? "tech" : "gemini") as "tech" | "gemini" | "system",
+        id: p?.id ?? `msg-${m.ts}-${i}`,
+        role: (p?.role ?? (m.dir === "in" ? "tech" : "gemini")) as "tech" | "gemini" | "system",
         text: m.body,
         turnId: p?.turnId ?? `${m.ts}`,
-        at: m.ts as number,
+        at: Number(m.ts),
       };
     });
   }
 
   const snapshot: LiveSnapshot = {
-    sessionId: persisted?.sessionId ?? null,
-    simulation: persisted?.simulation ?? false,
-    maxSeq: Math.max(hubMaxSeq, persisted?.maxSeq ?? -1),
+    sessionId: live?.sessionId ?? null,
+    simulation: live?.simulation ?? false,
+    maxSeq: Math.max(hubMaxSeq, live?.maxSeq ?? -1),
     lines: lines.length ? lines : dbLines,
-    runbook: persisted?.runbook ?? null,
-    notes: persisted?.notes ?? [],
-    report: persisted?.report ?? null,
+    runbook: live?.runbook ?? null,
+    notes: live?.notes ?? [],
+    report: live?.report ?? null,
   };
 
   return NextResponse.json(snapshot);

@@ -5,6 +5,7 @@ import path from "node:path";
 import { analyse } from "@/lib/analyse";
 import { datasetFromStrings } from "@/lib/data/load";
 import type { Analysis, Dataset } from "@/lib/data/types";
+import { FIXTURES } from "@/lib/memory/fixture";
 
 const ROOT = path.join(process.cwd(), "public", "data");
 const REQUIRED = ["network.json", "ops.json", "telemetry.csv"];
@@ -53,8 +54,21 @@ export function serverAnalysis(folder: string, asOf?: number): Promise<Analysis>
   return p;
 }
 
+/**
+ * The latest analysis of one event, or null when it cannot be loaded. Built-in fixtures (folder "fixture") have no
+ * dataset directory, and a thread can outlive its folder; neither may crash the caller with a file error.
+ */
 export async function serverEvent(folder: string, eventId: string, asOf?: number) {
-  const a = await serverAnalysis(folder, asOf);
-  const event = a.events.find((e) => e.id === eventId);
-  return event ? { event, now: a.now, fleet: a.fleet[event.system] } : null;
+  const fixture = FIXTURES[eventId];
+  if (fixture && (folder === fixture.folder || !folder)) {
+    return { event: fixture.event, now: fixture.now, fleet: fixture.fleet };
+  }
+  try {
+    const a = await serverAnalysis(folder, asOf);
+    const event = a.events.find((e) => e.id === eventId);
+    return event ? { event, now: a.now, fleet: a.fleet[event.system] } : null;
+  } catch (err) {
+    console.warn(`[dispatch] cannot load ${folder}/${eventId}:`, err instanceof Error ? err.message : err);
+    return null;
+  }
 }

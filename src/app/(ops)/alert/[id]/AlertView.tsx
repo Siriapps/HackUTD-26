@@ -155,6 +155,9 @@ export function AlertView({ id }: { id: string }) {
           <Link href={`/field/${event.id}${q}`} className="btn">
             Field view
           </Link>
+          <Link href={`/dispatch/${event.id}${q}`} className="btn">
+            Live conversation
+          </Link>
           <Link href={`/facility/${event.facility}${q}`} className="btn">
             Facility
           </Link>

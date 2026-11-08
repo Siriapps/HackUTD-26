@@ -119,6 +119,22 @@ export function update(key: string, patch: Partial<OpenAlert>, entry?: LogEntry)
   return next;
 }
 
+/**
+ * Append a glasses (Gemini Live) transcript line to the event's thread so it shows under the
+ * on-call / Event Threads board. Creates a "glasses" thread if the event has none yet.
+ * Messages are already persisted by /api/live/events (channel 'gemini'), so this only touches the thread log.
+ */
+export function appendLiveLine(folder: string, eventId: string, entry: LogEntry & { id?: string }) {
+  const key = alertKey(folder, eventId);
+  let a = alerts.get(key);
+  if (!a) a = upsertAlert({ eventId, folder, spaceId: "glasses", handle: "glasses", sentAt: entry.at });
+  if (entry.id && a.log.some((l) => (l as LogEntry & { id?: string }).id === entry.id)) return a;
+  const next = { ...a, log: [...a.log, entry] };
+  alerts.set(key, next);
+  saveDispatch(next);
+  return next;
+}
+
 export function _resetStore() {
   alerts.clear();
   const g2 = globalThis as unknown as { __dispatchHydrated?: boolean };

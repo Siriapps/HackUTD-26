@@ -27,7 +27,7 @@ interface Thread {
   log: { at: number; dir: "in" | "out"; text: string; by?: string; intent?: string }[];
 }
 
-const POLL_MS = 3000;
+const POLL_MS = 1500; // glasses transcripts land here; keep it near real time
 const STATUS: Record<Thread["status"], { label: string; fg: string; bg: string }> = {
   awaiting: { label: "Waiting on tech", fg: "var(--warn)", bg: "var(--warn-soft)" },
   approved: { label: "Approved", fg: "var(--ok)", bg: "var(--ok-soft)" },
@@ -150,8 +150,10 @@ function ThreadRow({ t, event, onChanged }: { t: Thread; event?: Event; onChange
     onChanged();
   }
 
+  // Threads opened from the glasses for an event no dataset knows have no plan to approve; the live page is their view.
+  const glassesOnly = t.handle === "glasses" && !event && !t.choice;
   const actions: [string, string][] =
-    t.status === "resolved"
+    t.status === "resolved" || glassesOnly
       ? []
       : [
           ["approve", "Approve plan"],
@@ -228,10 +230,10 @@ function ThreadRow({ t, event, onChanged }: { t: Thread; event?: Event; onChange
       )}
 
       <ol className="mt-2 space-y-0.5 text-xs">
-        {t.log.slice(-6).map((l, i) => (
-          <li key={i} className="grid grid-cols-[42px_64px_minmax(0,1fr)] gap-2 items-baseline">
+        {t.log.slice(-12).map((l, i) => (
+          <li key={i} className="grid grid-cols-[42px_96px_minmax(0,1fr)] gap-2 items-baseline">
             <span className="num text-ink-3">{clock(l.at)}</span>
-            <span className={l.dir === "in" ? "text-ink-1" : "text-ink-3"}>{l.dir === "in" ? (l.by ?? "reply") : "sent"}</span>
+            <span className={`truncate ${l.dir === "in" ? "text-ink-1" : "text-ink-3"}`}>{l.dir === "in" ? (l.by ?? "reply") : (l.by ?? "sent")}</span>
             <span className={`truncate ${l.dir === "in" ? "text-ink-1" : "text-ink-2"}`} title={l.text}>
               {l.text.split("\n")[0] || "—"}
             </span>

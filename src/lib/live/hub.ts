@@ -13,7 +13,7 @@
  * After a process restart clients reconnect; GET /api/live/state rebuilds from Tiger.
  */
 
-import type { LiveEvent, TranscriptPayload } from "./types";
+import type { IncidentLive, LiveEvent, TranscriptPayload } from "./types";
 
 export type Subscriber = (event: LiveEvent) => void;
 
@@ -27,19 +27,28 @@ interface IncidentState {
   partials: Map<string, LiveEvent>;
   /** Highest seq received. */
   maxSeq: number;
+  /** Session that owns `log`; a new session.start for the incident starts a fresh log. */
+  sessionId: string | null;
+  /** Authoritative runbook / notes / report state, updated synchronously on ingest. Tiger is the restart-proof copy. */
+  live: IncidentLive | null;
 }
 
-const store = new Map<string, IncidentState>();
+// globalThis: Next dev/Turbopack can load this module once per route bundle, which would give the
+// ingest route and the SSE route different stores (events posted, never streamed). Same pattern as dispatch/store.ts.
+const g = globalThis as unknown as { __liveHub?: Map<string, IncidentState> };
+const store: Map<string, IncidentState> = (g.__liveHub ??= new Map());
 
-function key(folder: string, eventId: string): string {
-  return `${folder}|${eventId}`;
+// POC limitation: keyed by event id only. The phone defaults its folder ("test") independently of the
+// folder the browser has loaded, and a mismatch would hide the stream. Event ids are unique per demo.
+function key(_folder: string, eventId: string): string {
+  return eventId;
 }
 
 function getOrCreate(folder: string, eventId: string): IncidentState {
   const k = key(folder, eventId);
   let s = store.get(k);
   if (!s) {
-    s = { seen: new Set(), log: [], subscribers: new Set(), partials: new Map(), maxSeq: -1 };
+    s = { seen: new Set(), log: [], subscribers: new Set(), partials: new Map(), maxSeq: -1, sessionId: null, live: null };
     store.set(k, s);
   }
   return s;
@@ -52,6 +61,16 @@ export function publish(event: LiveEvent): boolean {
   // Idempotent: same id → ignore.
   if (s.seen.has(event.id)) return false;
   s.seen.add(event.id);
+
+  // iOS restarts seq at 0 for every glasses call; a new session owns a fresh log so seq order stays meaningful.
+  if (event.type === "session.start") {
+    if (s.sessionId !== event.sessionId) {
+      s.log = [];
+      s.partials.clear();
+      s.maxSeq = -1;
+    }
+    s.sessionId = event.sessionId;
+  }
 
   if (event.seq > s.maxSeq) s.maxSeq = event.seq;
 
@@ -112,6 +131,20 @@ export function getLog(folder: string, eventId: string): LiveEvent[] {
 /** Highest seq seen (across partials and finals). */
 export function getMaxSeq(folder: string, eventId: string): number {
   return store.get(key(folder, eventId))?.maxSeq ?? -1;
+}
+
+/** Has this event id already been ingested for the incident? */
+export function hasSeen(folder: string, eventId: string, id: string): boolean {
+  return store.get(key(folder, eventId))?.seen.has(id) ?? false;
+}
+
+/** In-memory authoritative live snapshot (runbook, notes, report) for an incident. */
+export function getLive(folder: string, eventId: string): IncidentLive | null {
+  return store.get(key(folder, eventId))?.live ?? null;
+}
+
+export function setLive(folder: string, eventId: string, live: IncidentLive): void {
+  getOrCreate(folder, eventId).live = live;
 }
 
 /** For tests: reset all state. */

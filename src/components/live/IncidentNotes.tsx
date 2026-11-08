@@ -7,6 +7,7 @@ const KIND_STYLE: Record<NoteEntry["kind"], { label: string; color: string }> = 
   confirmation: { label: "Confirmed", color: "var(--ok)" },
   blocked: { label: "Blocked", color: "var(--shutdown)" },
   system: { label: "System", color: "var(--text-3)" },
+  escalation: { label: "Escalated", color: "var(--warn)" },
 };
 
 function ts(ms: number): string {

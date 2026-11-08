@@ -9,6 +9,8 @@ import { LiveTranscript } from "@/components/live/LiveTranscript";
 import { RunbookPanel } from "@/components/live/RunbookPanel";
 import { IncidentNotes } from "@/components/live/IncidentNotes";
 import { IncidentReport } from "@/components/live/IncidentReport";
+import { OperatorActionItems } from "@/components/live/OperatorActionItems";
+import type { ThreadSummary } from "@/lib/live/action-items";
 import { CATEGORY } from "@/components/Category";
 import type {
   LiveEvent,
@@ -20,6 +22,7 @@ import type {
   TranscriptPayload,
   RunbookUpdatePayload,
   NoteAppendPayload,
+  SessionStartPayload,
 } from "@/lib/live/types";
 
 const BACKOFF = [1000, 2000, 4000, 8000, 15000];
@@ -45,8 +48,34 @@ export function IncidentResponseView({ eventId }: { eventId: string }) {
   const [session, setSession] = useState<SessionMeta>({ sessionId: null, simulation: false, live: false });
   const [status, setStatus] = useState<"loading" | "connected" | "reconnecting" | "error">("loading");
 
+  // The On-call thread for this event (decisions, escalation, resolution): the night crew's side of the story.
+  const [thread, setThread] = useState<ThreadSummary | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const pull = async () => {
+      try {
+        const r = await fetch("/api/dispatch/state", { cache: "no-store" });
+        if (!r.ok) return;
+        const all = (await r.json()) as (ThreadSummary & { eventId: string; folder: string })[];
+        const mine = all.filter((t) => t.eventId === eventId);
+        const t = mine.find((x) => x.folder === folder) ?? mine[0] ?? null;
+        if (!cancelled) setThread(t);
+      } catch {
+        /* the card still works from the analysis and the call */
+      }
+    };
+    void pull();
+    const id = setInterval(pull, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [eventId, folder]);
+
   const seqRef = useRef(-1);
   const seenRef = useRef(new Set<string>());
+  const sessionIdRef = useRef<string | null>(null);
+  const loadSnapshotRef = useRef<() => Promise<void>>(async () => {});
 
   // ── Load snapshot (first paint + after reconnect) ─────────────────────────
   const loadSnapshot = useCallback(async () => {
@@ -59,11 +88,15 @@ export function IncidentResponseView({ eventId }: { eventId: string }) {
       setRunbook(snap.runbook);
       setNotes(snap.notes);
       setReport(snap.report);
+      sessionIdRef.current = snap.sessionId;
       setSession({ sessionId: snap.sessionId, simulation: snap.simulation, live: false });
     } catch {
       /* snapshot errors are non-fatal; SSE delivers updates */
     }
   }, [folder, eventId]);
+  useEffect(() => {
+    loadSnapshotRef.current = loadSnapshot;
+  }, [loadSnapshot]);
 
   // ── Apply a live event to local state ────────────────────────────────────
   const applyEvent = useCallback((ev: LiveEvent) => {
@@ -73,7 +106,17 @@ export function IncidentResponseView({ eventId }: { eventId: string }) {
 
     switch (ev.type) {
       case "session.start": {
-        const p = ev.payload as { simulation?: boolean } | null;
+        const p = ev.payload as Partial<SessionStartPayload> | null;
+        if (sessionIdRef.current && sessionIdRef.current !== ev.sessionId) {
+          // A new glasses call for this incident: start the page over.
+          setLines([]);
+          setNotes([]);
+          setReport(null);
+        }
+        sessionIdRef.current = ev.sessionId;
+        // The server seeds the runbook from the incident category and ships it with session.start.
+        if (p?.runbook) setRunbook(p.runbook);
+        else void loadSnapshotRef.current();
         setSession({ sessionId: ev.sessionId, simulation: p?.simulation ?? false, live: true });
         break;
       }
@@ -119,7 +162,11 @@ export function IncidentResponseView({ eventId }: { eventId: string }) {
       case "runbook.update": {
         const p = ev.payload as RunbookUpdatePayload;
         setRunbook((prev) => {
-          if (!prev) return prev;
+          if (!prev) {
+            // Missed session.start (page opened mid-call): pull the server's runbook.
+            void loadSnapshotRef.current();
+            return prev;
+          }
           const steps = prev.steps.map((s) =>
             s.index === p.stepIndex
               ? { ...s, status: p.status, observation: p.observation ?? s.observation, technicianConfirmed: p.technicianConfirmed, at: ev.at }
@@ -302,6 +349,9 @@ export function IncidentResponseView({ eventId }: { eventId: string }) {
           onAction={handleReportAction}
         />
       </div>
+
+      {/* Final card: what the operators should do, with room around it */}
+      <OperatorActionItems event={event} thread={thread} sessionLive={session.live} runbook={runbook} notes={notes} report={report} folder={folder} eventId={eventId} />
 
       {/* Footer always present per rules */}
       <footer className="sr-only">© 2026 Avon Corps</footer>

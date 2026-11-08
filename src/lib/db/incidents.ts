@@ -140,14 +140,24 @@ export function saveLive(folder: string, eventId: string, live: IncidentLive): v
   if (!dbConfigured()) return;
   swallow(
     (async () => {
-      await query(
-        `INSERT INTO incidents (id, dataset, event_id, system_id, facility_id, asset_id, category, onset_ts, status, live, updated_at)
+      const sql = `INSERT INTO incidents (id, dataset, event_id, system_id, facility_id, asset_id, category, onset_ts, status, live, updated_at)
          VALUES ($1,$2,$3,'','','','unknown', now(), 'ongoing', $4::jsonb, now())
-         ON CONFLICT (id) DO UPDATE SET live = $4::jsonb, updated_at = now()`,
-        [id(folder, eventId), folder, eventId, JSON.stringify(live)],
-      );
+         ON CONFLICT (id) DO UPDATE SET live = $4::jsonb, updated_at = now()`;
+      const params = [id(folder, eventId), folder, eventId, JSON.stringify(live)];
+      try {
+        await query(sql, params);
+      } catch (e) {
+        if (!/column "live"/.test(e instanceof Error ? e.message : String(e))) throw e;
+        await ensureLiveColumn();
+        await query(sql, params);
+      }
     })(),
   );
+}
+
+/** Databases created before the live column existed: add it in place (same self-heal as `dispatch`). */
+async function ensureLiveColumn() {
+  await query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS live jsonb`);
 }
 
 /**
@@ -156,10 +166,15 @@ export function saveLive(folder: string, eventId: string, live: IncidentLive): v
  */
 export async function loadLive(folder: string, eventId: string): Promise<IncidentLive | null> {
   if (!dbConfigured()) return null;
-  const rows = await query<{ live: unknown }>(
-    `SELECT live FROM incidents WHERE id = $1 AND live IS NOT NULL`,
-    [id(folder, eventId)],
-  );
+  const sql = `SELECT live FROM incidents WHERE id = $1 AND live IS NOT NULL`;
+  let rows: { live: unknown }[];
+  try {
+    rows = await query<{ live: unknown }>(sql, [id(folder, eventId)]);
+  } catch (e) {
+    if (!/column "live"/.test(e instanceof Error ? e.message : String(e))) throw e;
+    await ensureLiveColumn();
+    rows = await query<{ live: unknown }>(sql, [id(folder, eventId)]);
+  }
   if (!rows.length || !rows[0].live) return null;
   return rows[0].live as IncidentLive;
 }
