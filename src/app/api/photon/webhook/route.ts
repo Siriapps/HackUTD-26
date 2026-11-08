@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { parseEvent } from "@/lib/photon/events";
 import { accept, emit, recent } from "@/lib/photon/inbox";
 import { verifyWebhook } from "@/lib/photon/verify";
+import { wireDispatch } from "@/lib/dispatch/wire";
+
+wireDispatch();
 
 /** Photon webhook receiver. 400 on bad signature (no retry), 2xx on duplicates, 503 if unconfigured (retry). */
 export async function POST(request: Request) {
