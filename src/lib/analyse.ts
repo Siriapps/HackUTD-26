@@ -1,6 +1,7 @@
 import type { Analysis, Dataset, Event } from "./data/types";
 import { detectEvents, facilityContexts, lastIndexLE, type FacilityCtx } from "./detect/events";
 import { countdown, producingWells } from "./forecast/countdown";
+import { forecastDegradation } from "./forecast/degradation";
 import { FleetLedger } from "./plan/ledger";
 import { facilityOptions, makePlan, planJointly, type FacilityPlanInput } from "./plan/optimise";
 import { busyUntilUnix } from "./plan/trucks";
@@ -103,5 +104,5 @@ export function analyse(dataset: Dataset, nowOverride?: number): Analysis {
   }
 
   const alerts = events.filter((e) => e.status === "ongoing").sort(alertOrder);
-  return { folder: dataset.folder, now, events, alerts, forecasts: [], fleet };
+  return { folder: dataset.folder, now, events, alerts, forecasts: forecastDegradation(dataset, events, now), fleet };
 }
