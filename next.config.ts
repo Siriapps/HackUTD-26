@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  /* No Next dev badge on the judge's screen. */
+  devIndicators: false,
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
