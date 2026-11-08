@@ -11,8 +11,10 @@ export interface TickDeps {
   /** Open (or reuse) a direct conversation with a handle; returns its space id. */
   openSpace(handle: string): Promise<string>;
   send(spaceId: string, text: string, key: string): Promise<void>;
-  /** Ring a handle with the AI engineer (voice); resolves false when voice isn't configured. */
+  /** Ring a handle with the AI engineer (voice). Only wired when DISPATCH_AUTO_CALL=1; by default the tech calls us. */
   call?(handle: string): Promise<boolean>;
+  /** Night-engineer line printed in reminders so the tech can call when they choose. */
+  voiceNumber?: string;
   nowMs: number;
   /** >1 compresses escalation timing for demos (DISPATCH_TIME_SCALE). */
   timeScale?: number;
@@ -36,7 +38,7 @@ export async function tick(deps: TickDeps): Promise<TickAction[]> {
     const steps = ladder(fresh.event);
     const nextAfter = steps[step.level]?.afterMin;
     const nextInMin = nextAfter != null ? (nextAfter - step.afterMin) / (deps.timeScale ?? 1) : undefined;
-    const text = composeEscalation(step, a, fresh.event, fresh.now, { nowMs: deps.nowMs, nextInMin, timeScale: deps.timeScale });
+    const text = composeEscalation(step, a, fresh.event, fresh.now, { nowMs: deps.nowMs, nextInMin, timeScale: deps.timeScale, voiceNumber: deps.voiceNumber });
 
     const sentTo: string[] = [];
     const failed: string[] = [];
@@ -53,7 +55,7 @@ export async function tick(deps: TickDeps): Promise<TickAction[]> {
     const techThread = a.spaceId !== "field-app";
     if (step.kind === "reminder" && techThread) {
       await deliver(a.spaceId, "tech");
-      // Unanswered text → the phone rings too; a call is harder to sleep through.
+      // Opt-in only (DISPATCH_AUTO_CALL=1): ring the tech on an unanswered text. Default is the number in the text.
       if (deps.call && (await deps.call(a.handle).catch(() => false))) sentTo.push("tech (call)");
     }
     if (step.kind === "supervisor") {

@@ -2,7 +2,7 @@
 // the less time to shutdown, the shorter the acknowledgement window. Pure: the ticker in wire.ts acts on it.
 import type { Event } from "@/lib/data/types";
 import { hoursText, money } from "@/lib/format";
-import { countdownLine } from "./alert";
+import { callLine, countdownLine } from "./alert";
 import type { OpenAlert } from "./store";
 
 export type StepKind = "reminder" | "supervisor" | "all_hands";
@@ -69,7 +69,7 @@ export function composeEscalation(
   a: OpenAlert,
   event: Event,
   now: number,
-  opts: { nowMs: number; techName?: string; nextInMin?: number; timeScale?: number },
+  opts: { nowMs: number; techName?: string; nextInMin?: number; timeScale?: number; voiceNumber?: string },
 ) {
   const cd = countdownLine(...elapsedView(event, now, (opts.nowMs - a.sentAt) / 1000 * (opts.timeScale ?? 1))) ?? "";
   const rec = event.plan?.recommended;
@@ -84,7 +84,10 @@ export function composeEscalation(
         `⏰ ${a.eventId} still needs you. ${cd}`,
         plan,
         `Reply YES to approve or HELP.${opts.nextInMin ? ` Supervisor gets paged in ${Math.round(opts.nextInMin)} min.` : ""}`,
-      ].join("\n");
+        callLine(opts.voiceNumber),
+      ]
+        .filter(Boolean)
+        .join("\n");
     case "supervisor":
       return [
         `⚠️ ESCALATED ${a.eventId} · ${event.facility} (${event.system})`,

@@ -11,7 +11,7 @@ const ITEMS = [
   { href: "/timeline", label: "Timeline", hint: "Replay the week", icon: "M3 12h18M7 8v8M12 6v12M17 9v6", match: (p: string) => p.startsWith("/timeline") },
   { href: "/dispatch", label: "On-call", hint: "Texts and replies", icon: "M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM10 18h4", match: (p: string) => p.startsWith("/dispatch") },
   { href: "/handoff", label: "Handoff", hint: "Morning brief", icon: "M4 6h16M4 12h10M4 18h7", match: (p: string) => p.startsWith("/handoff") },
-  { href: "/admin", label: "Analytics", hint: "Frequency, MTBF, cost avoided", icon: "M4 19V5M4 19h16M8 15v-4M12 15V8M16 15v-6", match: (p: string) => p.startsWith("/admin") },
+  { href: "/admin", label: "Analytics", hint: "MTBF, cost avoided", icon: "M4 19V5M4 19h16M8 15v-4M12 15V8M16 15v-6", match: (p: string) => p.startsWith("/admin") },
   { href: "/log", label: "Log", hint: "Events, resolutions, reports", icon: "M4 5h16v15H4zM4 9h16M9 5V3M15 5V3", match: (p: string) => p.startsWith("/log") },
   { href: "/landing", label: "Story", hint: "The pitch", icon: "M5 4l14 8-14 8z", match: (p: string) => p.startsWith("/landing") },
 ];

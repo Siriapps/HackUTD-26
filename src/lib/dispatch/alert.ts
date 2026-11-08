@@ -16,7 +16,11 @@ export interface AlertCtx {
   baseUrl?: string;
   /** Trucks this system has / has committed, for the shared-fleet line. */
   fleet?: { size: number; committed: number };
+  /** Night-engineer phone line; when set the text invites the tech to call instead of ringing them. */
+  voiceNumber?: string;
 }
+
+export const callLine = (n?: string) => (n ? `Or call ${n} any time to talk it through with the night engineer.` : null);
 
 export const hasAction = (o: PlanOption, t: Action["type"]) => o.actions.some((a) => a.type === t);
 
@@ -76,6 +80,8 @@ export function composeAlert(event: Event, ctx: AlertCtx): string {
   } else {
     lines.push("", `ACTION: inspect ${event.asset}.`, "Reply YES to acknowledge · FIXED when cleared · HELP");
   }
+  const call = callLine(ctx.voiceNumber);
+  if (call) lines.push(call);
   lines.push(fieldLink(event, ctx));
   return lines.join("\n");
 }

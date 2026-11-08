@@ -37,11 +37,11 @@ export function FleetCard() {
                   />
                 ))}
               </span>
-              <span className="num text-xs text-ink-2 text-right">
+              <span className="num text-xs text-ink-2 text-right whitespace-nowrap" title={`${f.committed} of ${f.size} trucks committed by the plan`}>
                 {f.committed ? (
                   <>
-                    <span className="text-ink-1">{f.committed}</span> committed · {free} free
-                    {failures > f.committed ? ` · ${failures} failures` : ""}
+                    <span className="text-ink-1">{free}</span>/{f.size} free
+                    {failures > f.committed ? ` · ${failures} failing` : ""}
                   </>
                 ) : (
                   <>{f.size} free</>

@@ -71,6 +71,11 @@ const SPACE = "pho_spc_tech";
 const open = (e: Event, space = SPACE) => upsertAlert({ eventId: e.id, folder: FOLDER, spaceId: space, handle: "+15550001111", sentAt: Date.now() });
 
 describe("composeAlert", () => {
+  it("invites the tech to call the night engineer only when a voice number is configured", () => {
+    const e = A.alerts[0];
+    expect(composeAlert(e, { now: A.now, folder: FOLDER })).not.toContain("Or call");
+    expect(composeAlert(e, { now: A.now, folder: FOLDER, voiceNumber: "+15550100" })).toContain("Or call +15550100 any time");
+  });
   it("never prints undefined/NaN and carries countdown, plan cost, reply menu and deep link", () => {
     for (const e of A.alerts) {
       const t = composeAlert(e, { now: A.now, folder: FOLDER, baseUrl: "https://x.test", fleet: A.fleet[e.system] });
