@@ -1,25 +1,18 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useOps } from "@/store";
 import { FolderPicker } from "./FolderPicker";
-import { TimeScrubber } from "./TimeScrubber";
+import { ReplayControls } from "./ReplayControls";
+import { DropZone } from "./DropZone";
 import { fmtTime } from "./format";
 import { downloadEventsJson } from "@/lib/export/eventsJson";
 import { handoffText } from "@/lib/export/handoff";
 import { dispatch } from "@/lib/export/notify";
 
-const NAV = [
-  { href: "/", label: "Dashboard" },
-  { href: "/timeline", label: "Timeline" },
-  { href: "/dispatch", label: "On-call" },
-  { href: "/landing", label: "Story" },
-];
+
 
 export function TopBar() {
-  const pathname = usePathname();
   const analysis = useOps((s) => s.analysis);
   const dataset = useOps((s) => s.dataset);
   const source = useOps((s) => s.source);
@@ -36,32 +29,17 @@ export function TopBar() {
 
   return (
     <header className="shrink-0 min-h-[52px] px-3 py-1.5 flex items-center gap-3 flex-wrap border-b border-line-1 bg-surface-1">
-      <Link href="/" className="brand text-xl tracking-tight text-ink-1 no-underline whitespace-nowrap">
-        Flare
-      </Link>
-      <nav className="flex items-center gap-0.5 ml-1">
-        {NAV.map((n) => {
-          const active = n.href === "/" ? pathname === "/" || pathname.startsWith("/facility") : pathname.startsWith(n.href);
-          return (
-            <Link
-              key={n.href}
-              href={n.href}
-              className={`px-2.5 h-7 inline-flex items-center rounded-md text-sm no-underline ${active ? "bg-surface-3 text-ink-1" : "text-ink-2 hover:text-ink-1 hover:bg-surface-2"}`}
-              aria-current={active ? "page" : undefined}
-            >
-              {n.label}
-            </Link>
-          );
-        })}
-      </nav>
+      <div className="flex items-center gap-2 min-w-0">
+        <FolderPicker />
+        <DropZone />
+      </div>
 
       <div className="ml-auto flex items-center gap-3 min-w-0 flex-wrap max-[760px]:ml-0 max-[760px]:w-full">
-        <FolderPicker />
         {phase === "ready" && dataset && analysis && (
           <>
-            <span className="hidden min-[1200px]:inline num text-xs text-ink-3 whitespace-nowrap">data to {fmtTime(dataset.now)}</span>
+            <span className="hidden min-[1400px]:inline num text-xs text-ink-3 whitespace-nowrap">data to {fmtTime(dataset.now)}</span>
             <div className="max-[760px]:!hidden contents">
-              <TimeScrubber />
+              <ReplayControls />
             </div>
             {source === "fixture" && (
               <span className="chip" style={{ background: "var(--accent-wash)", color: "var(--accent)" }} title="analyse() returned no events; showing the hand-written fixture from src/store/fixture.ts">

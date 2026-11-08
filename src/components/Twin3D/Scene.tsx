@@ -26,6 +26,7 @@ const TOKENS = {
   warn: "--warn",
   shutdown: "--shutdown",
   accent: "--accent",
+  water: "--water",
   surface0: "--surface-0",
   surface1: "--surface-1",
   surface2: "--surface-2",
@@ -36,11 +37,17 @@ const TOKENS = {
 type Palette = Record<keyof typeof TOKENS, THREE.Color>;
 
 function readPalette(): Palette {
-  const cs = getComputedStyle(document.documentElement);
+  // The twin is always a dark instrument, even on the light site: sample the tokens inside a .band-dark scope.
+  const probe = document.createElement("div");
+  probe.className = "band-dark";
+  probe.style.cssText = "position:absolute;width:0;height:0;overflow:hidden;pointer-events:none";
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
   const out = {} as Palette;
   for (const k of Object.keys(TOKENS) as (keyof typeof TOKENS)[]) {
     out[k] = new THREE.Color(cs.getPropertyValue(TOKENS[k]).trim() || "#808080");
   }
+  probe.remove();
   return out;
 }
 
@@ -245,7 +252,7 @@ function Tank({ live, palette, limits }: { live: Live; palette: Palette; limits:
     g.translate(0, 0.5, 0); // anchor at the bottom so scale.y is the fill height
     return g;
   }, []);
-  const water = useMemo(() => palette.accent.clone().lerp(palette.surface3, 0.3), [palette]);
+  const water = useMemo(() => palette.water.clone().lerp(palette.surface3, 0.2), [palette]);
   const target = useMemo(() => new THREE.Color(), []);
   const level = useRef(0);
   const flash = useRef(0);

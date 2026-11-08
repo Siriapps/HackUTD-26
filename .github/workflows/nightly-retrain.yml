@@ -18,12 +18,14 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - name: Recalibrate
+      - name: Recalibrate (thresholds, confidence weights, forecast band)
         run: npx tsx scripts/retrain/run.ts --summary "$RUNNER_TEMP/summary.md"
+      - name: Retrain the early-warning scorer
+        run: npx tsx scripts/ml/train.ts --summary "$RUNNER_TEMP/ml.md" && cat "$RUNNER_TEMP/ml.md" >> "$RUNNER_TEMP/summary.md"
       - name: Inspect
         id: inspect
         run: |
-          if git diff --quiet -- src/lib/calibration/calibration.json; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+          if git diff --quiet -- src/lib/calibration/calibration.json src/lib/ml/early_warning.json data/outcomes; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
           echo "today=$(date -u +%F)" >> "$GITHUB_OUTPUT"
           cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Open PR
@@ -31,6 +33,7 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           branch: nightly/recalibration
+          base: main
           delete-branch: true
           title: "nightly: recalibration ${{ steps.inspect.outputs.today }}"
           commit-message: |
@@ -40,4 +43,5 @@ jobs:
           body-path: ${{ runner.temp }}/summary.md
           add-paths: |
             src/lib/calibration/calibration.json
+            src/lib/ml/early_warning.json
             data/outcomes/**
