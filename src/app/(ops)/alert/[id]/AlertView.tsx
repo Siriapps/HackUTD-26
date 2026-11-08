@@ -103,8 +103,7 @@ export function AlertView({ id }: { id: string }) {
     const command = i === 0 ? "approve" : `opt ${i + 1}`;
     const r = await fetch("/api/dispatch/decide", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, command, by: "ops console" }) });
     const j = (await r.json().catch(() => ({}))) as { ok?: boolean; message?: string };
-    setNote(j.message?.split("
-")[0] ?? (j.ok ? "Chosen" : "Could not decide"));
+    setNote(j.message?.split(/\r?\n/)[0] ?? (j.ok ? "Chosen" : "Could not decide"));
     if (j.ok) setChosen(i);
   }
   async function raiseTicket() {
