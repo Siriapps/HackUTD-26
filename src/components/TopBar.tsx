@@ -69,7 +69,7 @@ export function TopBar() {
               Export
             </button>
             <button type="button" className="btn btn-primary" onClick={sendAll} title="Text the shift handoff to the morning crew">
-              Dispatch
+              Handoff
             </button>
             {note && <span className="text-xs text-ink-3 whitespace-nowrap">{note}</span>}
           </>
