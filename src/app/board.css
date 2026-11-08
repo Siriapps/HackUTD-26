@@ -324,6 +324,7 @@
 }
 .poa__text {
   color: var(--text-1);
+  overflow-wrap: anywhere;
 }
 .poa__step--watch .poa__text,
 .poa__step--end .poa__text {
@@ -345,10 +346,14 @@
 }
 
 /* ─── alert page ───────────────────────────────────────────────────────── */
+/* Every breakpoint must name "track". An item with grid-area: track and no
+   matching area is placed on implicit lines, which collapses the real columns. */
 .alert {
   display: grid;
+  width: 100%;
+  min-width: 0;
   gap: 12px;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 0.92fr);
   grid-template-areas:
     "head head head"
     "track track track"
@@ -356,13 +361,31 @@
     "options options thread";
   align-content: start;
 }
+.alert > * {
+  min-width: 0;
+}
+.alert > .panel {
+  border-color: var(--line-2);
+  display: flex;
+  flex-direction: column;
+}
+.alert .panel-head {
+  flex-wrap: wrap;
+  align-items: center;
+}
+.alert .panel-sub {
+  min-width: 0;
+  text-wrap: pretty;
+}
 .alert__head {
   grid-area: head;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 16px;
+  gap: 12px 16px;
   flex-wrap: wrap;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--line-1);
 }
 .alert__health {
   grid-area: health;
@@ -372,9 +395,11 @@
 }
 .alert__twin {
   grid-area: twin;
-  display: flex;
-  flex-direction: column;
   min-height: 340px;
+}
+.alert__twin > .relative {
+  flex: 1;
+  min-height: 280px;
 }
 .alert__thread {
   grid-area: thread;
@@ -401,9 +426,15 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "head head"
+      "track track"
       "health plan"
       "twin thread"
       "options options";
+  }
+  /* The thread is a long log. Don't stretch the twin into a blank column beside it. */
+  .alert__twin {
+    align-self: start;
+    width: 100%;
   }
 }
 @media (max-width: 760px) {
@@ -411,6 +442,7 @@
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "head"
+      "track"
       "health"
       "plan"
       "twin"
