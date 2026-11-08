@@ -1,0 +1,20 @@
+Vendored from https://github.com/facebook/meta-wearables-dat-ios
+Path: samples/CameraAccess
+Git commit: bbae597cd1c748cd29b9375a1624a8d75b1c9e14
+Swift package: https://github.com/facebook/meta-wearables-dat-ios @ 1.0.1
+
+Local additions (HackUTD-26 feasibility HUD):
+- CameraAccess/Media/StreamFeasibility.swift
+- CameraAccess/Views/Components/FeasibilityHud.swift
+- CameraAccessTests/StreamFeasibilityTests.swift
+- HUD + DAT in-band audioCodec / HFP probe wiring in CameraViewModel.swift and CameraView.swift
+- CameraAccess/Media/StreamDiagnostics.swift + logging in CameraViewModel.swift / WearablesViewModel.swift
+- CameraAccessTests/StreamDiagnosticsTests.swift
+- Info.plist declares Bluetooth Classic (external-accessory + com.meta.ar.wearable) for free-team signing
+
+Flare Live (Gemini Live through the glasses, docs/glasses-live.md):
+- CameraAccess/FlareLive/*.swift
+- CameraAccessTests/FlareLiveTests.swift, CameraAccessTests/FlareLiveE2ETests.swift
+- CameraAccessUITests/FlareLiveUITests.swift
+- Views/MainAppView.swift opens Flare Live after registration (diagnostics under --ui-testing)
+- Info.plist NSAppTransportSecurity/NSAllowsLocalNetworking for the LAN dev server
