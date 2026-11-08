@@ -83,7 +83,7 @@ describe("composeAlert", () => {
       expect(t).toContain(`https://x.test/field/${e.id}?folder=${FOLDER}`);
       if (e.plan) {
         expect(t).toMatch(/shutdown in \d+ h \d{2} min/);
-        expect(t).toContain(`PLAN: ${e.plan.recommended.label}`);
+        expect(t).toContain(`PLAN (cheapest option): ${e.plan.recommended.label}`);
         expect(t).toContain("Reply YES");
       }
     }

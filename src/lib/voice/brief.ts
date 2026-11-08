@@ -99,11 +99,13 @@ export async function briefFor(caller?: string | null): Promise<CallBrief> {
   const htl = ev?.hours_to_limit?.p50;
   const clock = htl != null ? `, about ${hoursText(htl)} to shutdown` : "";
   const more = alerts.length > 1 ? ` You have ${alerts.length} open alerts; I'll start with the most urgent.` : "";
+  const rec = ev?.plan?.recommended;
+  const planSay = rec ? ` This is the plan, and it's the cheapest option: ${rec.label}, ${money(rec.cost)}.` : "";
   return {
     role,
     alerts,
     briefing: facts.join("\n\n"),
-    firstMessage: `Avon night engineering. I've got ${first.eventId}, the ${what}${clock}.${more} Are you on site, and is the area safe?`,
+    firstMessage: `Avon night engineering. I've got ${first.eventId}, the ${what}${clock}.${planSay}${more} Are you on site, and is the area safe?`,
   };
 }
 
