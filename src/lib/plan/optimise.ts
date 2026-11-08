@@ -159,3 +159,35 @@ export function makePlan(opts: PlanOption[], maxTrucks: number, horizonEndUnix: 
     horizon_end_unix: horizonEndUnix,
   };
 }
+
+/**
+ * Plan several ongoing failures in one system together: enumerate how many trucks each may
+ * use (Σ ≤ fleet), take the cheapest total, tie → fewer trucks. Inputs' `freeTrucks` is ignored;
+ * options are enumerated with the whole fleet and then constrained per allocation.
+ */
+export function planJointly(inputs: FacilityPlanInput[], fleet: number): { plans: Plan[]; committed: number } {
+  const opts = inputs.map((inp) => facilityOptions({ ...inp, freeTrucks: fleet }));
+  let best: { alloc: number[]; cost: number; trucks: number } | null = null;
+  const alloc = new Array<number>(inputs.length).fill(0);
+  const walk = (i: number, left: number) => {
+    if (i === inputs.length) {
+      let cost = 0;
+      let trucks = 0;
+      for (let j = 0; j < inputs.length; j++) {
+        const o = bestOption(opts[j], alloc[j]);
+        cost += o.cost;
+        trucks += trucksOf(o);
+      }
+      if (!best || cost < best.cost - 1e-9 || (Math.abs(cost - best.cost) <= 1e-9 && trucks < best.trucks)) best = { alloc: [...alloc], cost, trucks };
+      return;
+    }
+    for (let k = 0; k <= left; k++) {
+      alloc[i] = k;
+      walk(i + 1, left - k);
+    }
+  };
+  walk(0, fleet);
+  const chosen = best!.alloc;
+  const plans = inputs.map((inp, j) => makePlan(opts[j], chosen[j], inp.horizonEndUnix));
+  return { plans, committed: plans.reduce((s, p) => s + p.trucks_used, 0) };
+}
