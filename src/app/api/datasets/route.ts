@@ -22,4 +22,4 @@ export async function GET() {
   out.sort((a, b) => (a.folder === "test" ? -1 : b.folder === "test" ? 1 : a.folder.localeCompare(b.folder)));
   return NextResponse.json(out);
 }
-// No `dynamic` segment config: it is incompatible with cacheComponents, and GET handlers are dynamic by default.
+
