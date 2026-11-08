@@ -9,6 +9,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { Pool } from "pg";
+import { connectionOptions } from "../../src/lib/db";
 
 const ROOT = process.cwd();
 const DATA_DIR = path.join(ROOT, "public", "data");
@@ -21,7 +22,7 @@ async function main() {
     console.error("DATABASE_URL is not set (put it in .env.local and run with: npx dotenv -e .env.local -- npx tsx scripts/db/ingest.ts, or export it)");
     process.exit(2);
   }
-  const pool = new Pool({ connectionString: url, max: 2, ssl: url.includes("localhost") ? undefined : { rejectUnauthorized: false } });
+  const pool = new Pool(connectionOptions(url, 2));
   const wanted = process.argv.slice(2);
   const folders = readdirSync(DATA_DIR, { withFileTypes: true })
     .filter((d) => d.isDirectory() && REQUIRED.every((f) => existsSync(path.join(DATA_DIR, d.name, f))))

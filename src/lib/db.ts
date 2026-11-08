@@ -4,11 +4,22 @@ import { Pool, type QueryResultRow } from "pg";
 
 let pool: Pool | null | undefined;
 
+/**
+ * Pool options for a Tiger Cloud / Postgres URL. `sslmode=require` in pg >= 8.23 means full
+ * verification unless `uselibpqcompat=true` is set; Tiger Cloud's hosted certs expect libpq
+ * semantics (encrypted, not CA-pinned), so we add it when missing. Local URLs stay plain.
+ */
+export function connectionOptions(url: string, max = 4): { connectionString: string; max: number } {
+  let u = url.trim();
+  if (!/localhost|127\.0\.0\.1/.test(u) && /sslmode=require/.test(u) && !/uselibpqcompat=/.test(u)) u += "&uselibpqcompat=true";
+  return { connectionString: u, max };
+}
+
 /** Shared pool, or null when no DATABASE_URL is configured. */
 export function getPool(): Pool | null {
   if (pool !== undefined) return pool;
   const url = process.env.DATABASE_URL;
-  pool = url ? new Pool({ connectionString: url, max: 4, ssl: url.includes("localhost") ? undefined : { rejectUnauthorized: false } }) : null;
+  pool = url ? new Pool(connectionOptions(url)) : null;
   return pool;
 }
 
