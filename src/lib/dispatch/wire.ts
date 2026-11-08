@@ -28,6 +28,7 @@ async function runTick(client: PhotonClient) {
     roster: loadRoster,
     openSpace: async (handle) => (await client.directSpace("imessage", handle)).space.id,
     send: async (spaceId, text, key) => void (await client.sendText(spaceId, text, key, sender)),
+    call: (handle) => import("@/lib/voice/call").then((m) => m.callHandle(handle)),
     nowMs: Date.now(),
     timeScale: timeScale(),
   });

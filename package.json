@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "photon:webhook": "node scripts/photon-webhook.mjs"
+    "photon:webhook": "node scripts/photon-webhook.mjs",
+    "voice:agent": "node --no-warnings scripts/voice-agent.mjs"
   },
   "dependencies": {
     "@google/genai": "^3.0.0",
