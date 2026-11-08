@@ -8,18 +8,19 @@
   color-scheme: dark;
 
   /* Surfaces: near-black navy ramp. 0 = page, 1 = panel, 2 = card/input, 3 = hover/popover. */
-  --surface-0: #070b14;
-  --surface-1: #0c1220;
-  --surface-2: #121a2b;
-  --surface-3: #1a2438;
-  --line-1: rgb(148 163 196 / 0.1);
-  --line-2: rgb(148 163 196 / 0.2);
+  /* Warm near-black: a lit control room, not a SaaS navy. */
+  --surface-0: #0b0b0d;
+  --surface-1: #121214;
+  --surface-2: #1a1a1d;
+  --surface-3: #242428;
+  --line-1: rgb(255 244 224 / 0.08);
+  --line-2: rgb(255 244 224 / 0.16);
 
   /* Text */
-  --text-1: #e8edf7;
-  --text-2: #a3afc7;
-  --text-3: #7c89a6;
-  --text-inverse: #070b14;
+  --text-1: #f3efe6;
+  --text-2: #b9b3a7;
+  --text-3: #85806f;
+  --text-inverse: #0b0b0d;
 
   /* Event categories: ink steps for text, chips, icons and glows (>= 6:1 on every surface). */
   --cat-failure: #ffab2e;
@@ -46,9 +47,12 @@
   --shutdown-soft: rgb(255 90 95 / 0.16);
 
   /* Interactive: primary actions, links, selection. Not a category colour. */
-  --accent: #5b8def;
-  --accent-hover: #7aa3f5;
-  --focus: #9db4ff;
+  /* Produced water in the twin and gauges: steel blue, never a signal colour. */
+  --water: #4f7fd6;
+  /* One signal colour for actions: the same amber family as the thing that matters most. */
+  --accent: #ffb224;
+  --accent-hover: #ffc252;
+  --focus: #ffd27a;
   --ring: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--focus);
 
   /* Type. Display = ZT Moven Bold Italic (brand + page titles); everything read = Geist; numerals = Plex Mono. */
@@ -58,8 +62,8 @@
   /* 14px base, ratio ~1.2 (minor third): dense console, 8 steps. */
   --fs-xs: 0.6875rem;
   --fs-sm: 0.75rem;
-  --fs-md: 0.875rem;
-  --fs-lg: 1.0625rem;
+  --fs-md: 0.9375rem;
+  --fs-lg: 1.125rem;
   --fs-xl: 1.25rem;
   --fs-2xl: 1.5rem;
   --fs-3xl: 1.8125rem;
@@ -69,9 +73,9 @@
   --lh-body: 1.5;
 
   /* Shape: instrument panel, not SaaS cards. */
-  --r-sm: 4px;
-  --r-md: 6px;
-  --r-lg: 10px;
+  --r-sm: 3px;
+  --r-md: 4px;
+  --r-lg: 6px;
   --r-pill: 999px;
 
   /* Depth: borders carry structure; one shadow, for things that float. */
@@ -131,6 +135,7 @@
   --color-shutdown: var(--shutdown);
   --color-warn-soft: var(--warn-soft);
   --color-shutdown-soft: var(--shutdown-soft);
+  --color-water: var(--water);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-focus: var(--focus);

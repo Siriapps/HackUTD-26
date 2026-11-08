@@ -5,6 +5,8 @@ import { useState } from "react";
 import type { Event } from "@/lib/data/types";
 import { useOps } from "@/store";
 import { CATEGORY, CategoryChip } from "./Category";
+import { fmtDuration, fmtUtc } from "./ForecastCard";
+import type { DegradationForecast, EarlyWarning } from "@/lib/data/types";
 import { CountdownRing } from "./Countdown";
 import { useMounted } from "./useMounted";
 import { fmtClock, fmtHours, fmtMoney, fmtPct, fmtTime } from "./format";
@@ -17,8 +19,9 @@ export function Alerts({ compact = false, selected = null, onSelect }: { compact
   const dataset = useOps((s) => s.dataset);
   const nowOverride = useOps((s) => s.nowOverride);
   if (!analysis || !dataset) return null;
-  const { alerts, now } = analysis;
+  const { alerts, now, forecasts, warnings = [] } = analysis;
   const horizon = dataset.ops.expected_repair_hours.pump_failure;
+  const forecastFor = (e: Event) => forecasts.find((f) => f.pump_id === e.asset || f.facility === e.facility);
 
   if (!alerts.length) {
     return (
@@ -34,11 +37,46 @@ export function Alerts({ compact = false, selected = null, onSelect }: { compact
 
   // SPEC order puts every pump failure first, so the index is its priority rank.
   return (
-    <ol className="divide-y divide-line-1">
-      {alerts.map((e, i) => (
-        <AlertRow key={e.id} e={e} rank={e.category === "pump_failure" ? i + 1 : null} now={now} horizon={horizon} compact={compact} folder={dataset.folder} selected={selected === e.id} onSelect={onSelect} />
-      ))}
-    </ol>
+    <>
+      <ol className="divide-y divide-line-1">
+        {alerts.map((e, i) => (
+          <AlertRow
+            key={e.id}
+            e={e}
+            rank={e.category === "pump_failure" ? i + 1 : null}
+            now={now}
+            horizon={horizon}
+            compact={compact}
+            folder={dataset.folder}
+            selected={selected === e.id}
+            onSelect={onSelect}
+            forecast={e.category === "pump_degradation" ? forecastFor(e) : undefined}
+          />
+        ))}
+      </ol>
+      {warnings.length > 0 && <Forming warnings={warnings} folder={dataset.folder} />}
+    </>
+  );
+}
+
+/** Faults the learned scorer sees forming before the rules confirm them. */
+function Forming({ warnings, folder }: { warnings: EarlyWarning[]; folder: string }) {
+  return (
+    <section className="border-t border-line-2 px-4 py-3" aria-label="Forming">
+      <p className="text-xs uppercase tracking-wide text-ink-3 mb-2">Forming · learned scorer, not yet confirmed</p>
+      <ul className="space-y-1.5 text-sm">
+        {warnings.map((w) => (
+          <li key={`${w.facility}-${w.category}`} className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: CATEGORY[w.category].mark }} aria-hidden />
+            <Link href={`/facility/${w.facility}?folder=${encodeURIComponent(folder)}`} className="num text-ink-1 hover:underline">
+              {w.facility}
+            </Link>
+            <span className="text-ink-2">{w.category === "pipeline_leak" ? "leak signature" : "wear signature"}</span>
+            <span className="num ml-auto text-ink-3">{Math.round(w.probability * 100)}%</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -51,6 +89,7 @@ function AlertRow({
   folder,
   selected = false,
   onSelect,
+  forecast,
 }: {
   e: Event;
   rank: number | null;
@@ -60,6 +99,7 @@ function AlertRow({
   folder: string;
   selected?: boolean;
   onSelect?: (id: string) => void;
+  forecast?: DegradationForecast;
 }) {
   const [sent, setSent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -161,6 +201,13 @@ function AlertRow({
                     : ""}
                   )
                 </span>
+              </span>
+            </div>
+          ) : forecast?.predicted_fail_unix != null ? (
+            <div className="mt-1 flex items-baseline gap-2 flex-wrap">
+              <span className="num-display text-xl leading-none text-ink-1">~{fmtDuration(forecast.predicted_fail_unix - now)}</span>
+              <span className="text-sm text-ink-2">
+                until this pump fails <span className="num text-ink-3">({fmtUtc(forecast.predicted_fail_unix)})</span>
               </span>
             </div>
           ) : (

@@ -10,6 +10,7 @@ import { HandoffCard } from "@/components/HandoffCard";
 import { MapPanel } from "@/components/MapPanel";
 import { PlanCompare } from "@/components/PlanCompare";
 import { ShutdownRace } from "@/components/ShutdownRace";
+import { ForecastCard } from "@/components/ForecastCard";
 import { Twin3DSlot } from "@/components/Twin3DSlot";
 import { fmtClock, fmtHours, fmtMoney } from "@/components/format";
 import { describeActions } from "@/lib/export/handoff";
@@ -118,6 +119,10 @@ export default function DashboardPage() {
                 <div className="text-sm text-ink-2">
                   <span className="text-xs uppercase tracking-wide text-ink-3 mr-2">Do this now</span>
                   {describeActions(event.actions)} · no countdown, the tank keeps draining.
+                  {(() => {
+                    const f = analysis.forecasts.find((x) => x.pump_id === event.asset || x.facility === event.facility);
+                    return f ? <ForecastCard forecast={f} now={analysis.now} repairHours={dataset.ops.expected_repair_hours.pump_failure} className="mt-3" /> : null;
+                  })()}
                   <ul className="mt-2 space-y-1">
                     {event.evidence.slice(0, 3).map((l, i) => (
                       <li key={i} className="text-ink-2">

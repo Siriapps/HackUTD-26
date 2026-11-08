@@ -8,7 +8,7 @@ export function TankSvg({ facility, readings, limits, event, t }: Twin3DProps) {
   const top = 24;
   const bottom = 156;
   const y = (pct: number) => bottom - ((bottom - top) * pct) / 100;
-  const fill = level >= limits.shutdown ? "var(--shutdown)" : level >= limits.warning ? "var(--warn)" : "var(--accent)";
+  const fill = level >= limits.shutdown ? "var(--shutdown)" : level >= limits.warning ? "var(--warn)" : "var(--water)";
   const fault = readings.pump_status === 2 || active === "pump_failure";
   const pumpColor = fault
     ? "var(--cat-failure)"

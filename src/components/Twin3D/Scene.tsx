@@ -26,6 +26,7 @@ const TOKENS = {
   warn: "--warn",
   shutdown: "--shutdown",
   accent: "--accent",
+  water: "--water",
   surface0: "--surface-0",
   surface1: "--surface-1",
   surface2: "--surface-2",
@@ -245,7 +246,7 @@ function Tank({ live, palette, limits }: { live: Live; palette: Palette; limits:
     g.translate(0, 0.5, 0); // anchor at the bottom so scale.y is the fill height
     return g;
   }, []);
-  const water = useMemo(() => palette.accent.clone().lerp(palette.surface3, 0.3), [palette]);
+  const water = useMemo(() => palette.water.clone().lerp(palette.surface3, 0.2), [palette]);
   const target = useMemo(() => new THREE.Color(), []);
   const level = useRef(0);
   const flash = useRef(0);
