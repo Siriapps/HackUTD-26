@@ -6,6 +6,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExterna
 import * as THREE from "three";
 import type { Event, Plan } from "@/lib/data/types";
 import { eventActiveAt, planLevelAt, truckSchedule } from "./derive";
+import { PipeRig } from "./PipeRig";
 import type { Twin3DProps, TwinLimits, TwinTrucking } from "./types";
 
 /*
@@ -175,6 +176,7 @@ const World = memo(function World({
       <Ground palette={palette} />
       <Tank live={live} palette={palette} limits={limits} />
       <Pump live={live} palette={palette} />
+      <PipeRig curve={curve} />
       <Pipeline live={live} palette={palette} curve={curve} />
       <Leak live={live} palette={palette} curve={curve} />
       <Disposal palette={palette} />
@@ -384,7 +386,9 @@ function Pump({ live, palette }: { live: Live; palette: Palette }) {
 
 function Pipeline({ live, palette, curve }: { live: Live; palette: Palette; curve: THREE.CatmullRomCurve3 }) {
   const inst = useRef<THREE.InstancedMesh>(null);
-  const tube = useMemo(() => new THREE.TubeGeometry(curve, 64, 0.07, 10, false), [curve]);
+  // Opaque industrial shell (gas-pipe look) + inner glow tube for live flow read.
+  const shell = useMemo(() => new THREE.TubeGeometry(curve, 72, 0.095, 14, false), [curve]);
+  const core = useMemo(() => new THREE.TubeGeometry(curve, 72, 0.055, 10, false), [curve]);
   const pts = useMemo(() => {
     const arr = new Float32Array((CURVE_SAMPLES + 1) * 3);
     const v = new THREE.Vector3();
@@ -396,8 +400,9 @@ function Pipeline({ live, palette, curve }: { live: Live; palette: Palette; curv
   }, [curve]);
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const travel = useRef(0);
+  const coreMat = useRef<THREE.MeshStandardMaterial>(null);
   useFrame((_, dt) => {
-    const { readings, facility, motion } = live.current;
+    const { readings, facility, motion, event, t } = live.current;
     const ratio = clamp01(readings.receive_flow_bpd / facility.pipeline.max_bpd);
     if (motion) travel.current = (travel.current + dt * 0.3 * ratio) % 1; // speed ∝ receive flow
     const visible = Math.round(FLOW_N * ratio); // density ∝ receive flow
@@ -423,15 +428,41 @@ function Pipeline({ live, palette, curve }: { live: Live; palette: Palette; curv
       mesh.setMatrixAt(i, dummy.matrix);
     }
     mesh.instanceMatrix.needsUpdate = true;
+    const leakOn = !!event && event.category === "pipeline_leak" && eventActiveAt(event, t);
+    const m = coreMat.current!;
+    if (leakOn) {
+      m.color.copy(palette.leak);
+      m.emissive.copy(palette.leak);
+      m.emissiveIntensity = 0.55;
+      m.opacity = 0.55;
+    } else {
+      m.color.copy(palette.text2);
+      m.emissive.copy(palette.ok).multiplyScalar(ratio);
+      m.emissiveIntensity = 0.15 + 0.45 * ratio;
+      m.opacity = 0.22 + 0.35 * ratio;
+    }
   });
   return (
     <>
-      <mesh geometry={tube}>
-        <meshPhysicalMaterial color={palette.text2} transparent opacity={0.28} roughness={0.2} metalness={0.6} depthWrite={false} />
+      <mesh geometry={shell}>
+        <meshStandardMaterial color="#6f7d6a" roughness={0.55} metalness={0.62} />
+      </mesh>
+      <mesh geometry={core}>
+        <meshStandardMaterial
+          ref={coreMat}
+          color={palette.text2}
+          transparent
+          opacity={0.35}
+          roughness={0.25}
+          metalness={0.4}
+          depthWrite={false}
+          emissive={palette.ok}
+          emissiveIntensity={0.2}
+        />
       </mesh>
       <instancedMesh ref={inst} args={[undefined, undefined, FLOW_N]} frustumCulled={false}>
-        <sphereGeometry args={[0.042, 6, 6]} />
-        <meshBasicMaterial color={palette.text2} toneMapped={false} />
+        <sphereGeometry args={[0.038, 6, 6]} />
+        <meshBasicMaterial color={palette.ok} toneMapped={false} />
       </instancedMesh>
     </>
   );

@@ -120,10 +120,21 @@ input[type="range"].scrub::-moz-range-thumb {
   border-bottom: 1px solid var(--line-1);
 }
 .panel-title {
+  font-family: var(--font-display);
   font-size: var(--fs-lg);
-  font-weight: 600;
+  font-weight: 700;
+  font-style: italic;
   letter-spacing: -0.01em;
   color: var(--text-1);
+}
+
+.brand,
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
 }
 .panel-sub {
   font-size: var(--fs-sm);
