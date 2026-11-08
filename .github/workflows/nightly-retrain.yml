@@ -1,0 +1,43 @@
+name: nightly-retrain
+# Recalibration + regression refit (scripts/retrain/run.ts); opens a PR when calibration.json changes.
+# Needs "Allow GitHub Actions to create and approve pull requests" under Settings → Actions → General.
+# PRs opened with GITHUB_TOKEN do not trigger ci.yml by themselves: close/reopen the PR, or set a PAT as `token`.
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+concurrency: nightly-retrain
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Recalibrate
+        run: npx tsx scripts/retrain/run.ts --summary "$RUNNER_TEMP/summary.md"
+      - name: Inspect
+        id: inspect
+        run: |
+          if git diff --quiet -- src/lib/calibration/calibration.json; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+          echo "today=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Open PR
+        if: steps.inspect.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: nightly/recalibration
+          delete-branch: true
+          title: "nightly: recalibration ${{ steps.inspect.outputs.today }}"
+          commit-message: |
+            nightly: recalibration ${{ steps.inspect.outputs.today }}
+
+            Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+          body-path: ${{ runner.temp }}/summary.md
+          add-paths: |
+            src/lib/calibration/calibration.json
+            data/outcomes/**
