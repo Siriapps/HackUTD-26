@@ -33,6 +33,7 @@ export function AlertView({ id }: { id: string }) {
   const dataset = useOps((s) => s.dataset);
   const analysis = useOps((s) => s.analysis);
   const [thread, setThread] = useState<Thread | null>(null);
+  const [ticket, setTicket] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [armed, setArmed] = useState(false);
 
@@ -85,6 +86,26 @@ export function AlertView({ id }: { id: string }) {
     const j = (await r.json().catch(() => ({}))) as { ok?: boolean; error?: string; reason?: string; to?: string; message?: string };
     setNote(j.ok === false || !r.ok ? `Not sent: ${j.error ?? j.reason ?? r.status}` : `Texted ${j.to ?? "on-call"} ${j.reason ? `(${j.reason})` : ""}`);
   }
+  async function raiseTicket() {
+    setNote("Raising ticket…");
+    const title = `[${cat.label}] ${event!.facility} · ${event!.id} · ${htl != null ? `${fmtHours(htl)} to shutdown` : "inspection"}`;
+    const bodyMd = [
+      `**Facility:** ${event!.facility} (${event!.asset}) · **Since:** ${fmtClock(event!.onset_unix)} · **Folder:** ${dataset!.folder}`,
+      htl != null ? `**Countdown:** ${fmtHours(htl)} (trips ${fmtClock(now + htl * 3600)}) · tank ${fmtPct(level)}` : "**Countdown:** none (inspection)",
+      event!.plan ? `**Plan:** ${describeActions(event!.plan.recommended.actions)} · **Cost:** ${fmtMoney(event!.plan.recommended.cost)}` : `**Action:** ${describeActions(event!.actions)}`,
+      "",
+      "**Evidence**",
+      ...event!.evidence.map((l) => `- ${l}`),
+      "",
+      `Console: ${location.origin}/alert/${event!.id}${q} · Field: ${location.origin}/field/${event!.id}${q}`,
+    ].join("\n");
+    const r = await fetch("/api/ticket", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, body: bodyMd, labels: ["incident", event!.category] }) });
+    const j = (await r.json().catch(() => ({}))) as { ok?: boolean; url?: string; reason?: string };
+    if (j.ok && j.url) {
+      setTicket(j.url);
+      setNote("Ticket raised");
+    } else setNote(j.reason ?? "Ticket failed");
+  }
   async function falseAlarm() {
     setNote("Logging…");
     const r = await dispatch({ type: "alert", folder: dataset!.folder, now, text: `False alarm logged for ${event!.id} by ops`, event: { ...event!, evidence: ["ops: false alarm"] }, links: { dashboard: `/${q}` } });
@@ -117,12 +138,23 @@ export function AlertView({ id }: { id: string }) {
           <Link href={`/facility/${event.facility}${q}`} className="btn">
             Facility
           </Link>
+          {ticket ? (
+            <a href={ticket} target="_blank" rel="noreferrer" className="btn">
+              Ticket ↗
+            </a>
+          ) : (
+            <button type="button" className="btn" onClick={raiseTicket}>
+              Raise ticket
+            </button>
+          )}
           <button type="button" className="btn" onClick={falseAlarm}>
             False alarm
           </button>
           {note && <span className="text-xs text-ink-3">{note}</span>}
         </div>
       </header>
+
+      <Tracking thread={thread} event={event} />
 
       <section className="panel alert__health">
         <header className="panel-head">
@@ -187,7 +219,7 @@ export function AlertView({ id }: { id: string }) {
         </div>
       </section>
 
-      <section className="panel alert__twin">
+      <section className="panel alert__twin band-dark">
         <header className="panel-head">
           <h2 className="panel-title">Digital twin</h2>
           <span className="panel-sub">live</span>
@@ -235,5 +267,36 @@ export function AlertView({ id }: { id: string }) {
         back
       </button>
     </div>
+  );
+}
+
+/** Where this alert is in its life: detected → texted → acknowledged → approved → on site → fixed. */
+function Tracking({ thread, event }: { thread: Thread | null; event: { status: string; category: string } }) {
+  const log = thread?.log ?? [];
+  const said = (re: RegExp) => log.some((l) => l.dir === "in" && re.test(l.text));
+  const steps = [
+    { label: "Detected", done: true },
+    { label: "Texted", done: !!thread },
+    { label: "Acknowledged", done: said(/\b(omw|on my way|copy|10-4|arrived|yes|ok)\b/i) || thread?.status === "approved" },
+    { label: "Approved", done: thread?.status === "approved" || thread?.status === "resolved" },
+    { label: "On site", done: said(/\b(arrived|on site|here)\b/i) || thread?.status === "resolved" },
+    { label: "Fixed", done: thread?.status === "resolved" || event.status === "resolved" },
+  ];
+  const escalated = thread?.status === "escalated";
+  return (
+    <ol className="tracking" aria-label="Tracking">
+      {steps.map((s, i) => (
+        <li key={s.label} data-done={s.done || undefined} data-current={!s.done && (i === 0 || steps[i - 1].done) || undefined}>
+          <span className="tracking__dot" aria-hidden />
+          <span>{s.label}</span>
+        </li>
+      ))}
+      {escalated && (
+        <li data-escalated>
+          <span className="tracking__dot" aria-hidden />
+          <span>Escalated to supervisor</span>
+        </li>
+      )}
+    </ol>
   );
 }

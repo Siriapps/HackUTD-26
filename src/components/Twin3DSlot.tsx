@@ -63,7 +63,7 @@ export function Twin3DSlot({ facilityId, bare = false }: { facilityId: string; b
     );
   }
   return (
-    <section className="panel h-full min-h-[220px] flex flex-col overflow-hidden" data-twin-slot={facilityId}>
+    <section className="panel band-dark h-full min-h-[220px] flex flex-col overflow-hidden" data-twin-slot={facilityId}>
       <header className="panel-head shrink-0">
         <h2 className="panel-title">Digital twin</h2>
         <span className="panel-sub">Pipe system · tank · pump</span>

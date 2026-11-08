@@ -37,11 +37,17 @@ const TOKENS = {
 type Palette = Record<keyof typeof TOKENS, THREE.Color>;
 
 function readPalette(): Palette {
-  const cs = getComputedStyle(document.documentElement);
+  // The twin is always a dark instrument, even on the light site: sample the tokens inside a .band-dark scope.
+  const probe = document.createElement("div");
+  probe.className = "band-dark";
+  probe.style.cssText = "position:absolute;width:0;height:0;overflow:hidden;pointer-events:none";
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
   const out = {} as Palette;
   for (const k of Object.keys(TOKENS) as (keyof typeof TOKENS)[]) {
     out[k] = new THREE.Color(cs.getPropertyValue(TOKENS[k]).trim() || "#808080");
   }
+  probe.remove();
   return out;
 }
 

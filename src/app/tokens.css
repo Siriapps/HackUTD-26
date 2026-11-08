@@ -5,55 +5,61 @@
  */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
   /* Surfaces: near-black navy ramp. 0 = page, 1 = panel, 2 = card/input, 3 = hover/popover. */
-  /* Warm near-black: a lit control room, not a SaaS navy. */
-  --surface-0: #0b0b0d;
-  --surface-1: #121214;
-  --surface-2: #1a1a1d;
-  --surface-3: #242428;
-  --line-1: rgb(255 244 224 / 0.08);
-  --line-2: rgb(255 244 224 / 0.16);
+  /* Paper and charcoal: a light operations site with dark instrument bands. Palette: tangerine,
+     lobster pink, charcoal blue, muted teal, grey olive. */
+  --surface-0: #f3f1ec;
+  --surface-1: #ffffff;
+  --surface-2: #ece9e2;
+  --surface-3: #dfdbd2;
+  --line-1: rgb(53 58 71 / 0.12);
+  --line-2: rgb(53 58 71 / 0.24);
+  /* Dark band tokens (hero, twin, rail) */
+  --ink-0: #2b2f3a;
+  --ink-1: #353a47;
+  --ink-2: #404656;
+  --ink-line: rgb(243 241 236 / 0.14);
 
   /* Text */
-  --text-1: #f3efe6;
-  --text-2: #b9b3a7;
-  --text-3: #85806f;
-  --text-inverse: #0b0b0d;
+  --text-1: #22262f;
+  --text-2: #4e5564;
+  --text-3: #7b8290;
+  --text-inverse: #f6f4ef;
 
   /* Event categories: ink steps for text, chips, icons and glows (>= 6:1 on every surface). */
-  --cat-failure: #ffab2e;
-  --cat-leak: #22d3ee;
-  --cat-degradation: #a78bfa;
-  --ok: #3ddc97;
+  --cat-failure: #e2742a; /* vivid tangerine, urgency */
+  --cat-leak: #3f7f8c; /* deep teal: water going where it should not */
+  --cat-degradation: #6f7f78; /* grey olive: slow, low urgency */
+  --ok: #5f9a5e; /* muted teal-green: holds */
 
   /* Same hues stepped down for chart marks on dark surfaces (validated: CVD dE >= 9.8, L 0.63-0.67). */
-  --cat-failure-mark: #c98319;
-  --cat-leak-mark: #1497b5;
-  --cat-degradation-mark: #8e6cf0;
-  --ok-mark: #13a078;
+  --cat-failure-mark: #ee8434;
+  --cat-leak-mark: #4c93a0;
+  --cat-degradation-mark: #839791;
+  --ok-mark: #84b082;
 
   /* Translucent fills for chips, event spans, selected rows. */
-  --cat-failure-soft: rgb(255 171 46 / 0.14);
-  --cat-leak-soft: rgb(34 211 238 / 0.14);
-  --cat-degradation-soft: rgb(167 139 250 / 0.14);
-  --ok-soft: rgb(61 220 151 / 0.14);
+  --cat-failure-soft: rgb(238 132 52 / 0.16);
+  --cat-leak-soft: rgb(76 147 160 / 0.16);
+  --cat-degradation-soft: rgb(131 151 145 / 0.2);
+  --ok-soft: rgb(132 176 130 / 0.2);
 
   /* Tank limits only: warning line and shutdown line. Never for categories. */
-  --warn: #ffd84d;
-  --shutdown: #ff5a5f;
-  --warn-soft: rgb(255 216 77 / 0.14);
-  --shutdown-soft: rgb(255 90 95 / 0.16);
+  --warn: #d9a63a;
+  --shutdown: #c95d63; /* lobster pink: the tank trips */
+  --warn-soft: rgb(217 166 58 / 0.16);
+  --shutdown-soft: rgb(201 93 99 / 0.16);
 
   /* Interactive: primary actions, links, selection. Not a category colour. */
   /* Produced water in the twin and gauges: steel blue, never a signal colour. */
   --water: #4f7fd6;
   /* One signal colour for actions: the same amber family as the thing that matters most. */
-  --accent: #ffb224;
-  --accent-hover: #ffc252;
-  --focus: #ffd27a;
-  --ring: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--focus);
+  --accent: #353a47; /* charcoal: actions */
+  --accent-hover: #2b2f3a;
+  --focus: #ee8434;
+  --ring: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--focus);
 
   /* Type. Display = ZT Moven Bold Italic (brand + page titles); everything read = Geist; numerals = Plex Mono. */
   --font-display: var(--font-zt-moven), "ZT Moven", Geist, "Helvetica Neue", Arial, sans-serif;
@@ -79,7 +85,7 @@
   --r-pill: 999px;
 
   /* Depth: borders carry structure; one shadow, for things that float. */
-  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --shadow-pop: 0 10px 28px rgb(53 58 71 / 0.16), 0 1px 0 rgb(53 58 71 / 0.08);
 
   /* Motion: one easing family, five durations. Motion shows a state change or a live quantity, never decoration. */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1); /* moving between states */
@@ -237,4 +243,23 @@
       scroll-behavior: auto !important;
     }
   }
+}
+
+/* Dark instrument bands on the light site: the hero race, the twin, the rail. */
+.band-dark {
+  --surface-0: var(--ink-0);
+  --surface-1: var(--ink-1);
+  --surface-2: var(--ink-2);
+  --surface-3: #4b5263;
+  --line-1: var(--ink-line);
+  --line-2: rgb(243 241 236 / 0.26);
+  --text-1: #f6f4ef;
+  --text-2: #c9c5bb;
+  --text-3: #9a978e;
+  --text-inverse: #22262f;
+  --accent: #ee8434;
+  --accent-hover: #f39a55;
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.45);
+  color: var(--text-1);
+  color-scheme: dark;
 }

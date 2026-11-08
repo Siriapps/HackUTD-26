@@ -351,6 +351,7 @@
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.9fr);
   grid-template-areas:
     "head head head"
+    "track track track"
     "health plan twin"
     "options options thread";
   align-content: start;
@@ -575,4 +576,64 @@
   .ask__fab {
     bottom: 3.5rem;
   }
+}
+
+/* ─── tracking strip ───────────────────────────────────────────────────── */
+.tracking {
+  grid-area: track;
+  list-style: none;
+  margin: 0;
+  padding: 10px 14px;
+  display: flex;
+  gap: 0;
+  background: var(--surface-1);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  overflow-x: auto;
+}
+.tracking li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 22px;
+  position: relative;
+  white-space: nowrap;
+}
+.tracking li + li::before {
+  content: "";
+  width: 14px;
+  height: 1px;
+  background: var(--line-2);
+  margin-right: 8px;
+}
+.tracking__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-2);
+  background: var(--surface-1);
+}
+.tracking li[data-done] {
+  color: var(--text-1);
+}
+.tracking li[data-done] .tracking__dot {
+  background: var(--ok-mark);
+  border-color: var(--ok-mark);
+}
+.tracking li[data-current] {
+  color: var(--text-1);
+}
+.tracking li[data-current] .tracking__dot {
+  border-color: var(--cat-failure-mark);
+  background: var(--cat-failure-soft);
+  animation: pulse var(--pulse-period) ease-in-out infinite;
+}
+.tracking li[data-escalated] {
+  color: var(--shutdown);
+}
+.tracking li[data-escalated] .tracking__dot {
+  background: var(--shutdown);
+  border-color: var(--shutdown);
 }

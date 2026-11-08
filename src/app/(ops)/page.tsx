@@ -6,7 +6,6 @@ import { useOps } from "@/store";
 import { Alerts } from "@/components/Alerts";
 import { CATEGORY } from "@/components/Category";
 import { FleetCard } from "@/components/FleetCard";
-import { HandoffCard } from "@/components/HandoffCard";
 import { DispatchLog } from "@/components/DispatchLog";
 import { PlanOfAction } from "@/components/PlanOfAction";
 import { MapPanel } from "@/components/MapPanel";
@@ -14,6 +13,7 @@ import { PlanCompare } from "@/components/PlanCompare";
 import { ShutdownRace } from "@/components/ShutdownRace";
 import { ForecastCard } from "@/components/ForecastCard";
 import { INFO, InfoTip } from "@/components/InfoTip";
+import { WhatIfPanel } from "@/components/WhatIfPanel";
 import { Twin3DSlot } from "@/components/Twin3DSlot";
 import { fmtClock, fmtHours, fmtMoney } from "@/components/format";
 import { describeActions } from "@/lib/export/handoff";
@@ -37,9 +37,60 @@ export default function DashboardPage() {
   const q = `?folder=${encodeURIComponent(dataset.folder)}`;
   const failures = analysis.alerts.filter((e) => e.category === "pump_failure").length;
 
+  const next = analysis.alerts.find((e) => e.category === "pump_failure" && e.hours_to_limit);
+  const nextH = next?.hours_to_limit?.p50 ?? null;
+
   return (
-    <div className="board p-3">
-      <ShutdownRace analysis={analysis} dataset={dataset} selected={selected} onSelect={setSelected} />
+    <div className="board">
+      <section className="hero band-dark" aria-label="Next shutdown">
+        <div className="hero__inner">
+          <div className="hero__next">
+            <p className="hero__kicker">{next ? "Next shutdown" : "Network"}</p>
+            {next && nextH != null ? (
+              <>
+                <p className="hero__big num" data-urgent={nextH < 1 || undefined}>
+                  {fmtHours(nextH)}
+                </p>
+                <p className="hero__sub">
+                  <span className="num text-ink-1">{next.facility}</span> trips at <span className="num text-ink-1">{fmtClock(analysis.now + nextH * 3600)}</span> if nobody acts ·{" "}
+                  {next.plan ? (
+                    <>
+                      plan <span className="num text-ink-1">{describeActions(next.plan.recommended.actions)}</span> for{" "}
+                      <span className="num" style={{ color: "var(--ok-mark)" }}>
+                        {fmtMoney(next.plan.recommended.cost)}
+                      </span>
+                    </>
+                  ) : null}
+                </p>
+                <div className="hero__actions">
+                  <button type="button" className="btn btn-primary" onClick={() => setSelected(next.id)}>
+                    Show me
+                  </button>
+                  <Link href={`/alert/${next.id}${q}`} className="btn">
+                    Open alert
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="hero__big num">all clear</p>
+                <p className="hero__sub">Every pump is moving water and every ratio sits at baseline. Press Play to replay the week, or scrub the clock.</p>
+              </>
+            )}
+          </div>
+          <div className="hero__stats num" aria-label="Network health">
+            <Stat label="in progress" value={analysis.alerts.length} tone={analysis.alerts.length ? "warn" : "ok"} />
+            <Stat label="tanks filling" value={failures} tone={failures ? "bad" : "ok"} />
+            <Stat label="trucks committed" value={Object.values(analysis.fleet).reduce((s, f) => s + f.committed, 0)} />
+            <Stat label="facilities" value={dataset.network.systems.reduce((n, s) => n + s.facilities.length, 0)} />
+          </div>
+        </div>
+        <div className="hero__race">
+          <ShutdownRace analysis={analysis} dataset={dataset} selected={selected} onSelect={setSelected} />
+        </div>
+      </section>
+
+      <div className="board__grid">
 
       <section className="panel board__queue flex flex-col min-h-0">
         <header className="panel-head">
@@ -109,7 +160,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col">
-            <div className="flex-1 min-h-[260px] relative">
+            <div className="flex-1 min-h-[300px] relative band-dark">
               <Twin3DSlot facilityId={event.facility} bare />
             </div>
             <div className="shrink-0 border-t border-line-1 px-4 py-3 overflow-auto max-h-[44%]">
@@ -155,8 +206,24 @@ export default function DashboardPage() {
       <aside className="board__side flex flex-col gap-3 min-h-0">
         <FleetCard />
         <DispatchLog />
-        <HandoffCard />
       </aside>
+      </div>
+
+      <section className="board__whatif">
+        <WhatIfPanel />
+      </section>
+    </div>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: number; tone?: "ok" | "warn" | "bad" }) {
+  const color = tone === "bad" ? "var(--cat-failure-mark)" : tone === "warn" ? "var(--warn)" : tone === "ok" ? "var(--ok-mark)" : "var(--text-1)";
+  return (
+    <div className="hero__stat">
+      <span className="hero__stat-v" style={{ color }}>
+        {value}
+      </span>
+      <span className="hero__stat-l">{label}</span>
     </div>
   );
 }

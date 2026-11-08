@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/", label: "Board", hint: "Alerts by time to shutdown", icon: "M3 5h18v4H3zM3 11h11v8H3zM16 11h5v8h-5z", match: (p: string) => p === "/" || p.startsWith("/alert") || p.startsWith("/facility") },
   { href: "/timeline", label: "Timeline", hint: "Replay the week", icon: "M3 12h18M7 8v8M12 6v12M17 9v6", match: (p: string) => p.startsWith("/timeline") },
   { href: "/dispatch", label: "On-call", hint: "Texts and replies", icon: "M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM10 18h4", match: (p: string) => p.startsWith("/dispatch") },
+  { href: "/handoff", label: "Handoff", hint: "Morning brief", icon: "M4 6h16M4 12h10M4 18h7", match: (p: string) => p.startsWith("/handoff") },
   { href: "/log", label: "Log", hint: "Events, resolutions, reports", icon: "M4 5h16v15H4zM4 9h16M9 5V3M15 5V3", match: (p: string) => p.startsWith("/log") },
   { href: "/landing", label: "Story", hint: "The pitch", icon: "M5 4l14 8-14 8z", match: (p: string) => p.startsWith("/landing") },
 ];
