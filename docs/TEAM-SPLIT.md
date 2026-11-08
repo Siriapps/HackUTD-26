@@ -16,3 +16,8 @@ Contract (`src/lib/data/types.ts`) changes: own PR labelled `contract`, merged f
 
 P1 hands items outcomes / learning loop / retraining to subagents only after the reference-cost tests pass.
 P3 first hour: confirm Photon track judging criteria and whether Spectrum does outbound push; post on the Photon issue.
+
+## Tiger Data (required, decided 2026-11-07)
+Synthetic telemetry store + shared persistence (see the Tiger Data issue for schema and split). P1 ships schema +
+ingest + `src/lib/db.ts` + `/api/trends` first; P4/P3/P2 consume. Browser `analyse()` on the loaded folder remains
+the source of truth for detection/plans (judging constraint); the app must fully work with DATABASE_URL unset.
