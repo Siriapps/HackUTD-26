@@ -45,7 +45,7 @@ interface OpsState {
   fired: Fired[];
   init: () => Promise<void>;
   selectFolder: (folder: string) => Promise<void>;
-  setNow: (t: number | null) => void;
+  setNow: (t: number | null, opts?: { playback?: boolean }) => void;
   setPlaying: (on: boolean) => void;
   setSpeed: (s: number) => void;
   setAutoText: (on: boolean) => void;
@@ -71,7 +71,7 @@ async function textFired(r: Fired, folder: string, asOf: number) {
   const patch = (p: Partial<Fired>) => useOps.setState((s) => ({ fired: s.fired.map((f) => (f.eventId === r.eventId && f.firedAt === r.firedAt ? { ...f, ...p } : f)) }));
   patch({ text: "sending" });
   try {
-    const res = await fetch("/api/dispatch/alert", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventId: r.eventId, folder, asOf }) });
+    const res = await fetch("/api/dispatch/alert", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventId: r.eventId, folder, asOf, replayId: r.firedAt }) });
     const j = (await res.json().catch(() => ({}))) as { ok?: boolean; dryRun?: boolean; reason?: string; error?: string; message?: string; to?: string };
     if (!res.ok || j.ok === false) patch({ text: "failed", textNote: j.error ?? j.reason ?? `${res.status}` });
     else patch({ text: j.dryRun || j.reason ? "dry" : "sent", textNote: j.reason ?? j.message ?? j.to });
@@ -154,7 +154,7 @@ export const useOps = create<OpsState>()(
         }
       },
 
-      setNow(t) {
+      setNow(t, opts) {
         const { dataset, analysis: prev } = get();
         if (!dataset) return;
         const nowOverride = t == null || t >= dataset.now ? null : Math.max(dataset.ts[0], Math.round(t / 300) * 300);
@@ -162,7 +162,10 @@ export const useOps = create<OpsState>()(
           const { analysis, source } = compute(dataset, nowOverride);
           set({ nowOverride, analysis, source, error: null });
           // Firing: alerts that are in progress now and were not a moment ago (forward moves only).
-          if (prev && analysis.now > prev.now && analysis.now - prev.now <= 2 * 3600) {
+          // A scrub across the week does not text every alert it passes. Playback does, however
+          // far one frame jumps, so a replay cannot skip a firing.
+          const span = prev ? analysis.now - prev.now : 0;
+          if (prev && span > 0 && (opts?.playback || span <= 2 * 3600)) {
             const before = new Set(prev.alerts.map((e) => e.id));
             const fresh = analysis.alerts.filter((e) => !before.has(e.id));
             if (fresh.length) {
@@ -196,7 +199,7 @@ export const useOps = create<OpsState>()(
         }
         const next = Math.min(dataset.now, cur + dtSec);
         // Only re-analyse when the clock crosses a 5-minute grid line.
-        if (Math.floor(next / 300) !== Math.floor(cur / 300)) get().setNow(next);
+        if (Math.floor(next / 300) !== Math.floor(cur / 300)) get().setNow(next, { playback: true });
         else set({ nowOverride: next });
       },
       clearFired() {
