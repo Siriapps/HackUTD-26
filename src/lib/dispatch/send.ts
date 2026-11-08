@@ -38,6 +38,12 @@ export async function sendAlert(input: SendAlertInput): Promise<SendResult> {
   const client = photonClient();
   if (input.dryRun || !client || !to) {
     const reason = input.dryRun ? "dryRun" : !client ? "Photon not configured" : "no on-call handle (create config/ops-roster.json or set DISPATCH_ONCALL_HANDLE)";
+    // Still open the thread: the On-call board shows the alert, ops can decide from the console,
+    // and the log says plainly that no text went out.
+    const a = upsertAlert({ eventId: event.id, folder, asOf: input.asOf, spaceId: "local", handle: to ?? "unsent", sentAt: Date.now() });
+    if (!a.log.some((l) => l.text === text)) update(a.key, {}, { at: Date.now(), dir: "out", text: `${text}
+
+(not sent: ${reason})`, by: "ops" });
     return { ok: true, sent: false, reason, to, text };
   }
 
