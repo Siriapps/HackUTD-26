@@ -3,7 +3,7 @@
 ```bash
 git clone https://github.com/Siriapps/HackUTD-26.git && cd HackUTD-26
 npm install
-cp .env.example .env.local        # paste GEMINI_API_KEY (AI Studio) and DISCORD_WEBHOOK_URL
+cp .env.example .env.local        # GEMINI_API_KEY at minimum; see .env.example for Photon, Discord, voice, Tiger Data
 npm run dev                       # http://localhost:3000
 npm test -- --run                 # must stay green
 ```

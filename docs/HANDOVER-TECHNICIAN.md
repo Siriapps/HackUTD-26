@@ -2,6 +2,8 @@
 
 Written for the teammate taking the technician loop to the finish. Everything here is on `main`.
 
+> **What shipped after this note.** The glasses path is the native iOS app in `experiments/meta-sdk-poc`, not the `getDisplayMedia` “shared window” idea in section 1. Architecture, verification, and the physical-device checklist are in [glasses-live.md](glasses-live.md). The phone `/field` session is unchanged. Sections 2–4 still describe close-out, outcomes, and Tiger Data; confirm against the code before treating a step as unfinished.
+
 ## What already works
 - **Field page** `/field/[eventId]?folder=…` (`src/app/(tech)/field/[eventId]/FieldView.tsx`, `src/components/FieldCard.tsx`): countdown, plan of action, runbook, similar incidents, Plan confirmed / False alarm, Escalate.
 - **Gemini Live** (`src/components/LiveSession.tsx`): phone camera + mic → `ai.live.connect` with an ephemeral token from `POST /api/gemini/token` (`src/app/api/gemini/token/route.ts`), briefing built by `buildBriefing` in `src/lib/memory/briefing.ts`. Tools: confirm_plan, log_observation, escalate, get_past_incidents. Photo fallback: `POST /api/gemini/snapshot`. Keyframes → `POST /api/gemini/report` → `VisualReport` (`src/components/VisualReportCard.tsx`).
