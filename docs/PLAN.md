@@ -1,5 +1,7 @@
 # Avon Night Shift — HackUTD ZeroDay "Beat the Shutdown" (EOG challenge)
 
+> **Kickoff plan, 2026-11-07.** The shipped product is [the repository README](../README.md). Decisions below that changed during the build: Next.js 16 and npm (the plan says Next.js 15 and pnpm), Esri dark-canvas map tiles (CARTO’s dark tiles require an API key), Photon iMessage as the dispatch channel with Discord as the fallback, a native Ray-Ban Meta client in `experiments/meta-sdk-poc`, Tiger Data as optional persistence, and an ElevenLabs agent on the Photon voice line. The architecture tree in this file is the original layout, not the current one. The current diagram is in the README.
+
 ## Context
 
 Challenge repo: https://github.com/nihaal419/HackUTD-ZeroDay. Build a night-shift operator console for Avon's produced-water network that (1) detects pipeline leaks, worn pumps and pump failures from sensor data alone, (2) for every pump failure computes the time-to-shutdown and the cheapest response (trucks / early shut-ins / do nothing, trucks shared per system), and (3) is judged on creativity, UX, usefulness, cost-optimisation correctness, zero hardcoding (everything from `network.json`, `ops.json`, `telemetry.csv` of a selectable folder; a new `test/` folder with systems S6–S11 is dropped in at judging), and following instructions.
