@@ -40,6 +40,9 @@ export default function DashboardPage() {
 
   const next = analysis.alerts.find((e) => e.category === "pump_failure" && e.hours_to_limit);
   const nextH = next?.hours_to_limit?.p50 ?? null;
+  // Quiet board: the soonest forecast pump failure, so the hero still says what to watch.
+  const soonest = [...analysis.forecasts].filter((f) => f.predicted_fail_unix != null && f.predicted_fail_unix > analysis.now).sort((a, b) => a.predicted_fail_unix! - b.predicted_fail_unix!)[0];
+  const open = analysis.alerts.length;
 
   return (
     <div className="board">
@@ -74,8 +77,24 @@ export default function DashboardPage() {
               </>
             ) : (
               <>
-                <p className="hero__big num">all clear</p>
-                <p className="hero__sub">Every pump is moving water and every ratio sits at baseline. Press Play to replay the week, or scrub the clock.</p>
+                <p className="hero__big num">{open ? "no shutdown pending" : "all clear"}</p>
+                <p className="hero__sub">
+                  {open ? (
+                    <>
+                      Every tank is draining. <span className="num text-ink-1">{open}</span> alert{open === 1 ? "" : "s"} in progress
+                      {soonest ? (
+                        <>
+                          {" "}· <span className="num text-ink-1">{soonest.pump_id}</span> forecast to fail in{" "}
+                          <span className="num text-ink-1">{fmtHours((soonest.predicted_fail_unix! - analysis.now) / 3600)}</span>, inspect before{" "}
+                          <span className="num text-ink-1">{fmtClock(soonest.predicted_fail_unix!)}</span>
+                        </>
+                      ) : null}
+                      .
+                    </>
+                  ) : (
+                    <>Every pump is moving water and every ratio sits at baseline. Press Play to replay the week, or scrub the clock.</>
+                  )}
+                </p>
               </>
             )}
           </div>
