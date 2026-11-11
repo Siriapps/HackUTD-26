@@ -49,11 +49,10 @@ export async function sendAlert(input: SendAlertInput): Promise<SendResult> {
     return { ok: true, sent: false, reason, to, text };
   }
 
-  // Manual text: same event + plan + asOf → same key, so a double-click does not double-text.
-  // Replay passes replayId. Photon 422s when a key is reused with a different body, and a
-  // matching key does not deliver a second message, so each forward pass needs its own key.
-  const planSig = event.plan ? `${event.plan.recommended.label}|${Math.round(event.plan.recommended.cost)}` : "inspect";
-  const key = `alert:${folder}:${event.id}:${hash(`${planSig}|${input.asOf ?? ""}|${input.replayId ?? ""}`)}`;
+  // Manual text: same event + same words + asOf → same key, so a double-click does not double-text.
+  // Replay passes replayId so each forward pass gets its own key. Photon 422s when a key is reused
+  // with a different body, so the text itself is part of the key (new plan or new wording → new key).
+  const key = `alert:${folder}:${event.id}:${hash(`${text}|${input.asOf ?? ""}|${input.replayId ?? ""}`)}`;
   const repeat = !!getAlert(alertKey(folder, event.id));
   try {
     const { space, sender } = await client.directSpace("imessage", to);
