@@ -97,11 +97,11 @@
     "system": "S4",
     "facility": "S4_FACILITY_C",
     "asset": "S4_PUMP_C",
-    "onset_unix": 1791381300,
+    "onset_unix": 1791381600,
     "end_unix": 1791511200,
     "confidence": 0.99,
     "category": "pump_degradation",
-    "time_to_resolution_hours": 36.08
+    "time_to_resolution_hours": 36
   },
   {
     "event_id": "EV-0009",
