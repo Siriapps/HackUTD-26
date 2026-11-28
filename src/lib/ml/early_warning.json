@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "trained_at": "2026-11-08T02:47:18.816Z",
+  "trained_at": "2026-11-28T11:29:29.871Z",
   "classes": [
     "healthy",
     "pipeline_leak",
